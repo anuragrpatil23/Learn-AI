@@ -339,7 +339,7 @@ if torch.cuda.is_available():
 
 
 total_batch_size = 524288 # 2^19, ~0.5M, in number of tokens
-B = 16 #micro batch size
+B = 256 #micro batch size
 T = 1024 #sequence length
 assert total_batch_size % (B*T*ddp_world_size)==0, "make sure total batch size is divisible by B*T*ddp_world_size"
 grad_accum_steps = total_batch_size//(B*T* ddp_world_size)
@@ -366,7 +366,7 @@ raw_model = model.module if ddp else model #always contains the raw unwrapped mo
 max_lr = 3e-4
 min_lr = max_lr * 0.1
 warmup_steps = 10
-max_steps = 50 
+max_steps = 500 
 
 def get_lr(it):
     #1) linear warmup for warmup_iters steps

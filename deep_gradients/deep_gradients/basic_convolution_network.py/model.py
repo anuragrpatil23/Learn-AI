@@ -184,7 +184,69 @@ class Bottleneck(nn.Module):
                     conv1x1(self.inplanes, planes*block.expansion, stride),
                     norm_layer(planes * block.expansion)
                     )
+                
+            layers = []
+            layers.append(
+                block(
+                    self.inplanes, planes, stride, downsample, self.groups, self.base_width, previous_dilation, norm_layer
                 )
+            )
+            self.inplanes = planes * block.expansion
+            for _ in range(1, blocks):
+                layers.append(
+                    block(
+                        self.inplanes,
+                        planes,
+                        groups=self.groups,
+                        base_width=self.base_width,
+                        dilation=self.dilation,
+                        norm_layer=norm_layer,
+                    )
+                )
+
+            return nn.Sequential(*layers)
+        
+        def _forward_impl(self, x: Tensor) -> Tensor:
+            # See note [TorchScript super()]
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.relu(x)
+            x = self.maxpool(x)
+
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+
+            x = self.avgpool(x)
+            x = torch.flatten(x, 1)
+            x = self.fc(x)
+
+            return x
+
+        def forward(self, x: Tensor) -> Tensor:
+            return self._forward_impl(x) 
+        
+        def _forward_impl(self, x: Tensor) -> Tensor:
+            # See note [TorchScript super()]
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.relu(x)
+            x = self.maxpool(x)
+
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+
+            x = self.avgpool(x)
+            x = torch.flatten(x, 1)
+            x = self.fc(x)
+
+            return x
+
+        def forward(self, x: Tensor) -> Tensor:
+            return self._forward_impl(x)
 
 
 

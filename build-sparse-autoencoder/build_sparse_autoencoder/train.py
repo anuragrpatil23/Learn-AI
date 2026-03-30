@@ -1,4 +1,6 @@
 from dataclasses import dataclass, asdict
+import os
+
 import blobfile as bf
 
 import torch.nn as nn
@@ -90,9 +92,8 @@ class Decoder(nn.Module):
         else:
             self.b_pre = torch.zeros(config["dec_input_size"])
 
-    def forward(self, x):  
+    def forward(self, x):
         x_adj = x - self.b_pre
-     
         x = self.linear(x_adj)
         return x
 
@@ -109,12 +110,17 @@ class SparseAutoencoder(nn.Module):
             "decoder": Decoder(config)  
         })
 
-        padding_size = config["dec_input_size"] - self.model["encoder"].b_pre.size(0)
+        self._init_b_pre()
 
-        self.model["decoder"].b_pre = torch.cat([self.model["encoder"].b_pre, torch.zeros(padding_size)], dim=0) #share the bias between encoder and decoder
-        self.model["decoder"].b_pre
+    def _init_b_pre(self):
+        encoder_b_pre = self.model["encoder"].b_pre
+        padding_size = self.config["dec_input_size"] - encoder_b_pre.size(0)
+        self.model["decoder"].b_pre = torch.cat([encoder_b_pre, torch.zeros(padding_size)], dim=0)
 
-
+    def to(self, device):
+        super().to(device)
+        self.model["decoder"].b_pre = self.model["decoder"].b_pre.to(device)
+        return self
 
     def forward(self, x):
         x = self.model["encoder"](x)
@@ -133,33 +139,43 @@ class SparseAutoencoder(nn.Module):
     
 
     @classmethod
-    def load_from_pretrained(cls, config):
-        
-        # load openai sparese autoencoder weights
+    def load_from_pretrained(cls, config, model_path=None):
+
         import sparse_autoencoder
+        import requests
 
-        with bf.BlobFile(sparse_autoencoder.paths.v5_32k(config["gpt2_layer_location"], config["gpt2_layer_index"]), mode="rb") as f:
-            import pdb; pdb.set_trace()
-            # Read the content of the blob file
-                file_content = f.read()
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
-                # Save the content to a local file
-                with open(save_path, 'wb') as local_file:
-                    local_file.write(file_content)
+        location = config["gpt2_layer_location"]
+        layer_index = config["gpt2_layer_index"]
+        url = sparse_autoencoder.paths.v5_32k(location, layer_index)
 
+        if model_path:
+            save_path = model_path
+        else:
+            save_path = os.path.join(model_cache_dir, "sparse-autoencoder", f"{location}_v5_32k", f"{layer_index}.pt")
+
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+        if not os.path.exists(save_path):
+            os.environ["AZURE_STORAGE_DISABLE_SSL"] = "1"
+            with bf.BlobFile(url, mode="rb") as blob_file:
+                with open(save_path, "wb") as local_file:
+                    local_file.write(blob_file.read())
+        else:
+            print(f"File already exists at {save_path}")
+
+        with open(save_path, mode="rb") as f:
             openai_sd = torch.load(f)
 
-            # Initialize the model
-            model = SparseAutoencoder(config)
-            sd = model.state_dict()
+        model = SparseAutoencoder(config)
+        sd = model.state_dict()
 
-            with torch.no_grad():
-                sd['model.encoder.linear.weight'].copy_(openai_sd["encoder.weight"])
-                sd['model.decoder.linear.weight'].copy_(openai_sd["decoder.weight"])
-                sd['model.encoder.b_pre'].copy_(openai_sd["pre_bias"])
-                # padding_size = config["dec_input_size"] - openai_sd["pre_bias"].size(0)
-                # sd['model.decoder.b_pre'].copy_(torch.cat([openai_sd["pre_bias"], torch.zeros(padding_size)], dim=0))
-            
+        with torch.no_grad():
+            sd['model.encoder.linear.weight'].copy_(openai_sd["encoder.weight"])
+            sd['model.decoder.linear.weight'].copy_(openai_sd["decoder.weight"])
+            sd['model.encoder.b_pre'].copy_(openai_sd["pre_bias"])
+
         return model
             
 
@@ -169,17 +185,18 @@ class SparseAutoencoder(nn.Module):
 # Eventually we will use nanogpt for this.
  
 #attempt to autodetect device
+print("Using Torch version:", torch.__version__)
 device = "cpu"
 if torch.cuda.is_available():
     device = "cuda"
 elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-    device = "mps"  
-device = "cpu"
+    device = "mps"
 print("Using device: ", device)
 
 import transformer_lens
+model_cache_dir = "/sc/arion/work/patila06/Learn-AI/model_cache_dir"
 # Extract neuron activations with transformer_lens
-model_ht = transformer_lens.HookedTransformer.from_pretrained("gpt2", center_writing_weights=False)
+model_ht = transformer_lens.HookedTransformer.from_pretrained("gpt2", center_writing_weights=False, cache_dir=model_cache_dir, local_files_only=False)
 model_ht.to(device)
 
 sd_ht = model_ht.state_dict()
@@ -226,7 +243,8 @@ print("transformer_lens_loc :", transformer_lens_loc)
 # pass the activations to the sparse autoencoder model
 
 model = SparseAutoencoder(asdict(config))
-model = SparseAutoencoder.load_from_pretrained(asdict(config))
+local_sparse_autoencoder_model_path = os.path.join(model_cache_dir, "sparse-autoencoder", f"{location}_v5_32k", f"{layer_index}.pt")
+model = SparseAutoencoder.load_from_pretrained(asdict(config), model_path=local_sparse_autoencoder_model_path)
 model.to(device)
 print(model)
 #print the model state dict
@@ -259,7 +277,7 @@ print(location, normalized_mse)
 print("passing through the open ai model for reference values")
 import sparse_autoencoder
 
-with bf.BlobFile(sparse_autoencoder.paths.v5_32k(location, layer_index), mode="rb") as f:
+with open(local_sparse_autoencoder_model_path, mode="rb") as f:
     state_dict = torch.load(f)
     autoencoder = sparse_autoencoder.Autoencoder.from_state_dict(state_dict)
     autoencoder.to(device)

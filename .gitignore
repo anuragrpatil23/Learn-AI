@@ -3,3 +3,25 @@ build-nanogpt/.DS_Store
 build-nanogpt/build_nanogpt/edu_fineweb10B/
 build-nanogpt/log/
 build-sparse-autoencoder/build_sparse_autoencoder/model_cache_dir/
+
+# Minerva local-only state
+.minerva_local/
+model_cache_dir/
+autoresearch/.venv/
+autoresearch/__pycache__/
+
+# Python and notebook noise
+**/__pycache__/
+.ipynb_checkpoints/
+
+# build-nanogpt local artifacts
+build-nanogpt/*.out
+build-nanogpt/*.err
+build-nanogpt/gpu_usage.log
+build-nanogpt/checkpoint.pth
+build-nanogpt/model_checkpoint.pt
+build-nanogpt/optimizer_checkpoint.pt
+build-nanogpt/core.*
+build-nanogpt/tmux-server-*.log
+build-nanogpt/build_nanogpt/hellaswag/
+build-nanogpt/build_nanogpt/log/

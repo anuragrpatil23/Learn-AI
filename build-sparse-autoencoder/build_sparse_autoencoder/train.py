@@ -139,6 +139,14 @@ class SparseAutoencoder(nn.Module):
         import sparse_autoencoder
 
         with bf.BlobFile(sparse_autoencoder.paths.v5_32k(config["gpt2_layer_location"], config["gpt2_layer_index"]), mode="rb") as f:
+            import pdb; pdb.set_trace()
+            # Read the content of the blob file
+                file_content = f.read()
+
+                # Save the content to a local file
+                with open(save_path, 'wb') as local_file:
+                    local_file.write(file_content)
+
             openai_sd = torch.load(f)
 
             # Initialize the model

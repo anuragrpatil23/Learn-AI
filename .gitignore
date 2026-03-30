@@ -2,3 +2,4 @@
 build-nanogpt/.DS_Store
 build-nanogpt/build_nanogpt/edu_fineweb10B/
 build-nanogpt/log/
+build-sparse-autoencoder/build_sparse_autoencoder/model_cache_dir/

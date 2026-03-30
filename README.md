@@ -12,6 +12,7 @@ This repository contains multiple machine learning projects spanning language mo
 - [Large-Scale Optimization](#large-scale-optimization)
 - [Autoresearch](#autoresearch)
 - [Learn RL](#learn-rl)
+- [Dataset Availability](#dataset-availability)
 - [Environment Setup](#environment-setup)
 - [Usage](#usage)
 - [Contributing](#contributing)
@@ -132,6 +133,18 @@ Implementation of subgradient and proximal gradient methods for a data denoising
 ## Learn RL
 
 `learn-rl/` is currently an early reinforcement learning scaffold. It is intended as a place to grow future RL experiments, package structure, and tests without mixing that work into the older projects.
+
+## Dataset Availability
+
+Current Minerva dataset state inside the Learn-AI workspace:
+
+- Ready to use: `NanoGPT/nanoGPT/data/shakespeare_char/` with `train.bin`, `val.bin`, `meta.pkl`, and `input.txt`
+- Small text inputs for demos and lecture work: `NanoGPT/nanoGPT/data/input.txt` and `NanoGPT/nanoGPT_lecture/dataset/input.txt`
+- Prep scaffolds present but not populated as local corpora: `NanoGPT/nanoGPT/data/openwebtext/`, `NanoGPT/nanoGPT/data/shakespeare/`, and `build-nanogpt/build_nanogpt/edu_fineweb10B/`
+- Local model cache area exists at `model_cache_dir/`, but it is currently small and should be treated as a cache, not a durable dataset store
+- Checkpoints such as `build-nanogpt/checkpoint.pth` and related files are training artifacts, not datasets
+
+Practical default: if you want a dataset that is already prepared and usable on Minerva, start with `NanoGPT/nanoGPT/data/shakespeare_char/`.
 
 ## Environment Setup
 

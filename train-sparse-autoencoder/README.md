@@ -7,8 +7,21 @@ method of Towards Monosemanticity (Anthropic, 2023), and logs how it forms.
 - `make_tokens.py` turns the fineweb-edu text into token files for `train.py`.
 - `submit_minerva.sh` submits one run to Minerva's GPU queue.
 
-Each run writes to `runs/<name>/`: `log.jsonl` (one line per log step), `config.json`, and
-snapshots of the weights at the start, at 1%, at 10% and at the end.
+Each run writes to `runs/<name>/`: the record of the run, and snapshots of the weights at the start,
+at 1%, at 10% and at the end.
+
+The record is written with the Weights & Biases client if it is installed (`pip install wandb`),
+always in offline mode: nothing is sent anywhere, and no account is needed. Without the client,
+`tracker.py` writes the same things as plain files; `--logger files` or `--logger wandb` chooses one
+outright. Either way the runs are copied to the laptop and looked at with
+[run-tracker](https://github.com/anuragrpatil23/run-tracker) (`rt sync`, `rt view`), filed under the
+project given by `--project`.
+
+What is logged, by the usual names: `train/loss` and its two terms, the same on a held-out batch
+as `val/…`, `lr`, `grad_norm`, `rows_per_second`, the state of the dictionary as `features/…`, and
+what the strongest feature for " sky" and " the" responds to. With the W&B client a run still going
+reaches disk a block at a time, so it can be some minutes behind; with the plain files each line is
+on disk as it is logged.
 
 Known limits. Features that stop firing are not restarted, so their number can be watched as it
 grows. The encoder starts as the decoder turned over, which later work found helps and the 2023

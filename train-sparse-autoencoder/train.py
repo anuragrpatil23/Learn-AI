@@ -14,11 +14,17 @@ and batches are drawn from the buffer at random so that a batch mixes many docum
 Every --log-every steps a line is written to log.jsonl with the numbers worth watching, and with
 what the strongest feature for " sky" and for " the" currently responds to.
 
+The run is recorded with the Weights & Biases client if it is installed, always offline: nothing is sent
+anywhere, and the run file stays in the run's folder to be copied and read with the run tracker
+(github.com/anuragrpatil23/run-tracker). Without the client, tracker.py, a copy of that project's own
+writer, records the same things as plain files. --logger chooses one outright.
+
 Usage: python train.py --tokens '/path/edufineweb_train_*.npy' --features 8192 --lam 0.02 --out runs/f8192
 """
 import argparse, glob, json, math, os, time
 import numpy as np
 import torch
+import tracker
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 p = argparse.ArgumentParser()
@@ -34,6 +40,8 @@ p.add_argument("--buffer", type=int, default=2 ** 19, help="rows held for shuffl
 p.add_argument("--log-every", type=int, default=200)
 p.add_argument("--seed", type=int, default=0)
 p.add_argument("--device", default=None, help="cuda, mps or cpu; chosen automatically if left out")
+p.add_argument("--project", default="sae-gpt2-mlp0", help="the project the run is filed under in the viewer")
+p.add_argument("--logger", default="auto", choices=["auto", "wandb", "files"], help="wandb (offline) if installed, else plain files; or say which")
 args = p.parse_args()
 
 torch.manual_seed(args.seed); np.random.seed(args.seed)
@@ -122,28 +130,99 @@ def probe(word):
 
 fired_ever = torch.zeros(N_FEAT, dtype=torch.bool, device=dev)
 fired_window = torch.zeros(N_FEAT, device=dev); rows_window = 0
-log = open(os.path.join(args.out, "log.jsonl"), "a")
-json.dump({"args": vars(args), "device": dev}, open(os.path.join(args.out, "config.json"), "w"))
+steps = int(args.rows // args.batch)
+held_out = buf.batch(args.batch).clone()                      # one batch set aside before training starts, for the val/ numbers
+
+# ---------- the record of the run ----------
+# Names follow the usual convention: train/ for what is measured on the batch being trained on, val/ for the batch set
+# aside, features/ for the state of the dictionary. The viewer gives each its own section and draws train/ and val/ of
+# the same name on one chart.
+ABOUT = {   # a sentence each, shown under the charts
+    "train/loss": "What is minimised: how far the rebuilt input is from the real one, plus lam times how much the features fire.",
+    "train/rebuild_error": "How far the rebuilt input is from the real one. The first term of the loss.",
+    "train/not_rebuilt": "The same, as a share of what there was to explain. Lower means more of the input is rebuilt.",
+    "train/total_firing": "How much the features fire in total, per word. The second term of the loss, before lam.",
+    "val/loss": "The loss on a batch set aside before training. If it rises while train/loss falls, the network is fitting its batches, not the data.",
+    "features/on": "How many features are on per word, out of all of them.",
+    "features/never_fired": "Features that have not fired once since training began.",
+    "features/silent_lately": "Features that did not fire at all since the last logged line.",
+    "features/busy": "Features that were on for more than 1 word in 10 since the last logged line.",
+    "lr": "The learning rate.",
+    "grad_norm": "The size of the gradient at the step before each logged line. A spike is a step that could throw the weights.",
+    "rows_per_second": "How fast training has gone so far.",
+    "sky": "The strongest feature for the word “ sky” in the prompt, and the tokens that fire it hardest.",
+    "the": "The strongest feature for the word “ the” in the prompt, and the tokens that fire it hardest.",
+    "section:train": "Measured on the batch being trained on.",
+    "section:val": "Measured on one batch set aside before training.",
+    "section:features": "The state of the dictionary: how many features are in use, and how many have gone quiet.",
+}
+CONFIG = {**vars(args), "device": dev}
+NAME, GROUP = os.path.basename(os.path.normpath(args.out)), "f%d" % N_FEAT
+
+
+class Record:
+    """Where the run is written: the W&B client, offline, or tracker.py's plain files."""
+    def __init__(self):
+        self.wandb = self.files = None
+        if args.logger != "files":
+            try:
+                import wandb
+                self.wandb = wandb.init(project=args.project, name=NAME, group=GROUP, dir=args.out, mode="offline",
+                                        config={**CONFIG, "about": ABOUT}, tags=["sae", "gpt2-small", "mlp0"])
+            except ImportError:
+                if args.logger == "wandb":
+                    raise
+        if self.wandb is None:
+            self.files = tracker.start(args.out, CONFIG, total=steps, project=args.project, group=GROUP)
+            self.files.describe(ABOUT)
+        # the snapshots of the weights go in the run's own folder, beside its record
+        self.folder = os.path.dirname(self.wandb.dir) if self.wandb else args.out
+
+    def log(self, step, rec):
+        self.wandb.log(rec, step=step) if self.wandb else self.files.log(step, **rec)
+
+    def saved(self, path, step):
+        if self.files:
+            self.files.save(path, kind="weights", step=step)
+
+    def finish(self):
+        self.wandb.finish() if self.wandb else self.files.finish()
+
+
+record = Record()
+grad_norm = None                                              # the size of the latest gradient, set in the loop
+
+
+def terms(x, x_hat, f):
+    """The loss and its parts on one batch, as plain numbers."""
+    err = ((x - x_hat) ** 2).sum(-1); size = ((x - x.mean(0)) ** 2).sum(-1)
+    return {"loss": round(float(err.mean()) + args.lam * float(f.sum(-1).mean()), 4),   # what is minimised: both terms together
+            "rebuild_error": round(float(err.mean()), 4),                               # first term of the loss
+            "not_rebuilt": round(float(err.sum() / size.sum()), 4),                     # the same, as a share of what there was to explain
+            "total_firing": round(float(f.sum(-1).mean()), 4)}                          # second term, before lam
+
 
 def write_log(step, rows_seen, x, x_hat, f, t0):
     global fired_window, rows_window
-    err = ((x - x_hat) ** 2).sum(-1); size = ((x - x.mean(0)) ** 2).sum(-1)
     rate = fired_window / max(rows_window, 1)
-    rec = {"step": step, "rows": int(rows_seen), "minutes": round((time.time() - t0) / 60, 2),
-           "rebuild_error": round(float(err.mean()), 4),                   # first term of the loss
-           "not_rebuilt": round(float(err.sum() / size.sum()), 4),         # the same, as a share of what there was to explain
-           "total_firing": round(float(f.sum(-1).mean()), 4),              # second term, before lam
-           "features_on": round(float((f > 0).sum(-1).float().mean()), 1), # per word, out of N_FEAT
-           "never_fired": int((~fired_ever).sum()),                        # since the start of training
-           "silent_lately": int((rate == 0).sum()),                        # no firing since the last log line
-           "busy": int((rate > 0.1).sum()),                                # on for more than 1 word in 10 since the last log line
-           "sky": probe(" sky"), "the": probe(" the")}
-    log.write(json.dumps(rec) + "\n"); log.flush()
-    print(json.dumps(rec), flush=True)
+    elapsed = time.time() - t0
+    rec = {"rows": int(rows_seen), "minutes": round(elapsed / 60, 2), "lr": opt.param_groups[0]["lr"]}
+    if rows_seen:
+        rec["rows_per_second"] = round(rows_seen / max(elapsed, 1e-9))
+    if grad_norm is not None:
+        rec["grad_norm"] = round(grad_norm, 4)
+    rec.update({"train/" + k: v for k, v in terms(x, x_hat, f).items()})
+    rec.update({"val/" + k: v for k, v in terms(held_out, *forward(held_out)).items()})
+    rec.update({"features/on": round(float((f > 0).sum(-1).float().mean()), 1),         # per word, out of N_FEAT
+                "features/never_fired": int((~fired_ever).sum()),                       # since the start of training
+                "features/silent_lately": int((rate == 0).sum()),                       # no firing since the last log line
+                "features/busy": int((rate > 0.1).sum()),                               # on for more than 1 word in 10 since the last log line
+                "sky": probe(" sky"), "the": probe(" the")})
+    record.log(step, rec)
+    print(json.dumps({"step": step, **rec}), flush=True)
     fired_window = torch.zeros(N_FEAT, device=dev); rows_window = 0
 
 # ---------- training ----------
-steps = int(args.rows // args.batch)
 saves = {0, steps // 100, steps // 10, steps}                  # snapshots, to look back at how the features formed
 t0 = time.time()
 for step in range(steps + 1):
@@ -156,14 +235,19 @@ for step in range(steps + 1):
         if step % args.log_every == 0 or step == steps:
             write_log(step, step * args.batch, x, x_hat, f, t0)
         if step in saves:
+            snapshot = os.path.join(record.folder, "step_%07d.pt" % step)
             torch.save({"W_enc": W_enc.detach().half().cpu(), "b_enc": b_enc.detach().cpu(), "W_dec": W_dec.detach().half().cpu(),
-                        "b_dec": b_dec.detach().cpu(), "step": step}, os.path.join(args.out, "step_%07d.pt" % step))
+                        "b_dec": b_dec.detach().cpu(), "step": step}, snapshot)
+            record.saved(snapshot, step)
     if step == steps:
         break
     opt.zero_grad()
     loss.backward()
     with torch.no_grad():                                      # do not let the update change a pattern's length, only its direction
         W_dec.grad -= (W_dec.grad * W_dec).sum(0, keepdim=True) * W_dec
+        if (step + 1) % args.log_every == 0 or step + 1 == steps:              # only where the next line will report it
+            grad_norm = float(torch.sqrt(sum((q.grad ** 2).sum() for q in params)))
     opt.step()
     with torch.no_grad():
         W_dec /= W_dec.norm(dim=0, keepdim=True)
+record.finish()

@@ -35,7 +35,9 @@ each step of GPT-2's first block and the sparse autoencoder produced, open a uni
 
     python scan_server.py --runs ~/run-tracker-data/runs --port 8790
 
-It finds `step_*.pt` snapshots at any depth under `--runs`; fetch one first with `rt fetch`.
+It is written on `scankit.py`, a copy of the scanner kit from the run-tracker repo, which carries
+everything that is the same for any network; what is in `scan_server.py` is GPT-2's own. After the
+kit changes, copy it across again. It finds `step_*.pt` snapshots at any depth under `--runs`; fetch one first with `rt fetch`.
 `--openai <file>` adds the sparse autoencoder OpenAI published for the same neurons. `scan_fixtures/`
 holds recorded replies for every route, written by `--write-fixtures`, for building against.
 

@@ -17,11 +17,27 @@
    "state": "cold"
   },
   {
-   "id": "openai-mlp0",
-   "label": "OpenAI, 32,768 features",
-   "run": null,
-   "step": null,
-   "bytes": 805713996,
+   "id": "sae/sweep_f8192_lam0.2@0",
+   "label": "sweep_f8192_lam0.2, step 0",
+   "run": "sae/sweep_f8192_lam0.2",
+   "step": 0,
+   "bytes": 100710799,
+   "state": "cold"
+  },
+  {
+   "id": "sae/sweep_f8192_lam0.2@488",
+   "label": "sweep_f8192_lam0.2, step 488",
+   "run": "sae/sweep_f8192_lam0.2",
+   "step": 488,
+   "bytes": 100710799,
+   "state": "cold"
+  },
+  {
+   "id": "sae/sweep_f8192_lam0.2@4882",
+   "label": "sweep_f8192_lam0.2, step 4,882",
+   "run": "sae/sweep_f8192_lam0.2",
+   "step": 4882,
+   "bytes": 100710799,
    "state": "cold"
   }
  ],

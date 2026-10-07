@@ -101,7 +101,13 @@ class GPT2Scanner(scankit.Scanner):
 
     def words(self, snapshot, node, units): return snapshot.data.words(units)
     def usual(self, snapshot, node): return snapshot.data.usual(node)
-    def unit(self, snapshot, node, unit): return snapshot.data.unit(node, unit)
+    def unit(self, snapshot, node, unit):
+        out = snapshot.data.unit(node, unit)
+        if node == "sae.features":            # the whole pattern and detector, one number per MLP neuron, for drawing on the sheet
+            sae = snapshot.data
+            out["made_of"]["all"] = [scankit.r4(v) for v in sae.pattern[:, unit] / sae.lengths[unit]]
+            out["listens_to"]["all"] = [scankit.r4(v) for v in sae.detector[unit] / (sae.detector[unit] ** 2).sum() ** 0.5]
+        return out
 
     def graph(self, snapshot):
         n = snapshot.data.n

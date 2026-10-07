@@ -25,3 +25,7 @@ build-nanogpt/core.*
 build-nanogpt/tmux-server-*.log
 build-nanogpt/build_nanogpt/hellaswag/
 build-nanogpt/build_nanogpt/log/
+
+# train-sparse-autoencoder local data and runs
+train-sparse-autoencoder/data/
+train-sparse-autoencoder/runs/

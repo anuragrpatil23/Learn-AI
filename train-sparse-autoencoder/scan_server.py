@@ -79,6 +79,7 @@ class GPT2Scanner(scankit.Scanner):
             W_enc, b_enc, W_dec, b_dec = sd["encoder.weight"], sd["latent_bias"], sd["decoder.weight"], sd["pre_bias"]
         else:                                 # a file train.py saved
             W_enc, b_enc, W_dec, b_dec = sd["W_enc"].float(), sd["b_enc"].float(), sd["W_dec"].float(), sd["b_dec"].float()
+        vocab_rows()                          # made here, not at the first run, so the wait shows as "loading"
         return scankit.SparseAutoencoder(detector=W_enc, detector_bias=b_enc, pattern=W_dec, usual=b_dec, reads="b0.mlp.act",
                                          probe=vocab_rows, probe_words=VOCAB, cache=path + ".words.json",
                                          test="every token placed after \"%s\", strongest first" % FRAME)

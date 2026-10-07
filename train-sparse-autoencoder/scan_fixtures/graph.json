@@ -53,7 +53,8 @@
    "order": 2,
    "about": "What each token is looking for. 768 neurons, each with 768 slopes and an intercept.",
    "unit": "channel",
-   "weights": 590592
+   "weights": 590592,
+   "each": 768
   },
   {
    "id": "b0.k",
@@ -66,7 +67,8 @@
    "order": 2,
    "about": "What each token offers to be found by.",
    "unit": "channel",
-   "weights": 590592
+   "weights": 590592,
+   "each": 768
   },
   {
    "id": "b0.v",
@@ -79,7 +81,8 @@
    "order": 2,
    "about": "What each token hands over if another token looks at it.",
    "unit": "channel",
-   "weights": 590592
+   "weights": 590592,
+   "each": 768
   },
   {
    "id": "b0.scores",
@@ -126,7 +129,8 @@
    "order": 6,
    "about": "A linear layer turning the mixed values into what attention adds to the stream.",
    "unit": "channel",
-   "weights": 590592
+   "weights": 590592,
+   "each": 768
   },
   {
    "id": "b0.add1",
@@ -165,7 +169,8 @@
    "about": "3,072 neurons, each a weighted sum of the 768 channels passed through GELU. These are what the sparse autoencoder reads.",
    "bend": "GELU",
    "unit": "neuron",
-   "weights": 2362368
+   "weights": 2362368,
+   "each": 768
   },
   {
    "id": "b0.mlp.out",
@@ -178,7 +183,8 @@
    "order": 13,
    "about": "A linear layer going back down to 768.",
    "unit": "channel",
-   "weights": 2360064
+   "weights": 2360064,
+   "each": 3072
   },
   {
    "id": "b0.add2",
@@ -227,7 +233,8 @@
    "unit": "feature",
    "weights": 100696064,
    "sparse": true,
-   "described": true
+   "described": true,
+   "each": 3072
   },
   {
    "id": "sae.rebuild",
@@ -240,7 +247,8 @@
    "order": 15,
    "about": "Each feature's pattern times how hard it fired, added up, plus the usual level. The sparse autoencoder's attempt at the MLP neurons.",
    "unit": "neuron",
-   "weights": 100663296
+   "weights": 100663296,
+   "each": 32768
   }
  ],
  "edges": [

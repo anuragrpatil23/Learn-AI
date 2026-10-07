@@ -17,6 +17,14 @@
    "state": "cold"
   },
   {
+   "id": "sae/sweep_f8192_lam0.1@48828",
+   "label": "sweep_f8192_lam0.1, step 48,828",
+   "run": "sae/sweep_f8192_lam0.1",
+   "step": 48828,
+   "bytes": 100710799,
+   "state": "cold"
+  },
+  {
    "id": "sae/sweep_f8192_lam0.2@0",
    "label": "sweep_f8192_lam0.2, step 0",
    "run": "sae/sweep_f8192_lam0.2",
@@ -37,6 +45,22 @@
    "label": "sweep_f8192_lam0.2, step 4,882",
    "run": "sae/sweep_f8192_lam0.2",
    "step": 4882,
+   "bytes": 100710799,
+   "state": "cold"
+  },
+  {
+   "id": "sae/sweep_f8192_lam0.2@48828",
+   "label": "sweep_f8192_lam0.2, step 48,828",
+   "run": "sae/sweep_f8192_lam0.2",
+   "step": 48828,
+   "bytes": 100710799,
+   "state": "cold"
+  },
+  {
+   "id": "sae/sweep_f8192_lam0.4@48828",
+   "label": "sweep_f8192_lam0.4, step 48,828",
+   "run": "sae/sweep_f8192_lam0.4",
+   "step": 48828,
    "bytes": 100710799,
    "state": "cold"
   }

@@ -27,3 +27,15 @@ Known limits. Features that stop firing are not restarted, so their number can b
 grows. The encoder starts as the decoder turned over, which later work found helps and the 2023
 paper does not do. On Apple GPUs with PyTorch 2.1 training blows up after about a hundred steps;
 the same run is steady on CPU, so use `--device cpu` on a Mac or run on CUDA.
+
+## Scanner
+
+`scan_server.py` serves a trained network to the Train Run Tracker's Scan view: type text, see what
+each step of GPT-2's first block and the sparse autoencoder produced, open a unit, contrast two texts.
+
+    python scan_server.py --runs ~/run-tracker-data/runs --port 8790
+
+It finds `step_*.pt` snapshots at any depth under `--runs`; fetch one first with `rt fetch`.
+`--openai <file>` adds the sparse autoencoder OpenAI published for the same neurons. `scan_fixtures/`
+holds recorded replies for every route, written by `--write-fixtures`, for building against.
+

@@ -1,0 +1,6 @@
+{
+ "error": {
+  "code": "not_loaded",
+  "message": "Snapshot 'x' is not loaded yet. Ask for it with load, then try again."
+ }
+}

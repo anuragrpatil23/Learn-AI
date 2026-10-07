@@ -1,0 +1,91 @@
+{
+ "node": "b0.mlp.act",
+ "unit": 1572,
+ "used_by": {
+  "node": "sae.features",
+  "count": 66,
+  "threshold": 0.1,
+  "top": [
+   [
+    16442,
+    0.8754,
+    [
+     " Metro",
+     "Metro",
+     " motorists",
+     " subway"
+    ]
+   ],
+   [
+    21199,
+    0.292,
+    [
+     " plane",
+     " Plane",
+     "plane",
+     " planes"
+    ]
+   ],
+   [
+    31303,
+    0.2854,
+    [
+     " air",
+     " airs",
+     " AIR",
+     " airspace"
+    ]
+   ],
+   [
+    14925,
+    0.2839,
+    [
+     " sky",
+     " skies",
+     " Skies",
+     "sky"
+    ]
+   ],
+   [
+    12563,
+    0.2822,
+    [
+     " Sky",
+     "Sky",
+     " Skywalker",
+     "sky"
+    ]
+   ],
+   [
+    31610,
+    0.282,
+    [
+     " schedule",
+     " schedules",
+     " Schedule",
+     " scheduling"
+    ]
+   ],
+   [
+    20383,
+    0.2686,
+    [
+     "bus",
+     " Bus",
+     "Bus",
+     "BUS"
+    ]
+   ],
+   [
+    4460,
+    0.2681,
+    [
+     " travel",
+     " Travel",
+     "Travel",
+     "travel"
+    ]
+   ]
+  ]
+ }
+}

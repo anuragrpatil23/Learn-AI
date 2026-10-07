@@ -1,0 +1,30 @@
+{
+ "snapshots": [
+  {
+   "id": "sae/f32768_lam0.2@48828",
+   "label": "f32768_lam0.2, step 48,828",
+   "run": "sae/f32768_lam0.2",
+   "step": 48828,
+   "bytes": 402798991,
+   "state": "cold"
+  },
+  {
+   "id": "sae/f8192_lam0.2@48828",
+   "label": "f8192_lam0.2, step 48,828",
+   "run": "sae/f8192_lam0.2",
+   "step": 48828,
+   "bytes": 100710799,
+   "state": "cold"
+  },
+  {
+   "id": "openai-mlp0",
+   "label": "OpenAI, 32,768 features",
+   "run": null,
+   "step": null,
+   "bytes": 805713996,
+   "state": "cold"
+  }
+ ],
+ "default": "sae/f32768_lam0.2@48828",
+ "files": "step_*.pt"
+}

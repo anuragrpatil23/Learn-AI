@@ -1,0 +1,335 @@
+{
+ "title": "GPT-2 small, first block, with a sparse autoencoder on its MLP neurons",
+ "groups": [
+  {
+   "id": "attention",
+   "label": "Attention"
+  },
+  {
+   "id": "mlp",
+   "label": "MLP"
+  },
+  {
+   "id": "sae",
+   "label": "Sparse autoencoder",
+   "attached": true
+  }
+ ],
+ "nodes": [
+  {
+   "id": "embed",
+   "label": "Embedding",
+   "group": null,
+   "kind": "lookup",
+   "width": 768,
+   "per": "token",
+   "lane": 0,
+   "order": 0,
+   "about": "Each token picks a row from the word table and a row from the position table, and the two are added. This is the stream.",
+   "unit": "channel",
+   "weights": 39383808
+  },
+  {
+   "id": "b0.ln1",
+   "label": "Layer norm",
+   "group": "attention",
+   "kind": "norm",
+   "width": 768,
+   "per": "token",
+   "lane": 2,
+   "order": 1,
+   "about": "Each token's row is shifted and rescaled to mean 0 and spread 1, then given a learnt scale and shift.",
+   "unit": "channel",
+   "weights": 1536
+  },
+  {
+   "id": "b0.q",
+   "label": "Query",
+   "group": "attention",
+   "kind": "linear",
+   "width": 768,
+   "per": "token",
+   "lane": 3,
+   "order": 2,
+   "about": "What each token is looking for. 768 neurons, each with 768 slopes and an intercept.",
+   "unit": "channel",
+   "weights": 590592
+  },
+  {
+   "id": "b0.k",
+   "label": "Key",
+   "group": "attention",
+   "kind": "linear",
+   "width": 768,
+   "per": "token",
+   "lane": 2,
+   "order": 2,
+   "about": "What each token offers to be found by.",
+   "unit": "channel",
+   "weights": 590592
+  },
+  {
+   "id": "b0.v",
+   "label": "Value",
+   "group": "attention",
+   "kind": "linear",
+   "width": 768,
+   "per": "token",
+   "lane": 1,
+   "order": 2,
+   "about": "What each token hands over if another token looks at it.",
+   "unit": "channel",
+   "weights": 590592
+  },
+  {
+   "id": "b0.scores",
+   "label": "Similarity",
+   "group": "attention",
+   "kind": "scores",
+   "width": null,
+   "per": "token-pair",
+   "lane": 3,
+   "order": 3,
+   "about": "A query times a key, for every pair of tokens. A token cannot look at later ones. Head 1 of 12 is shown."
+  },
+  {
+   "id": "b0.att",
+   "label": "Attention weights",
+   "group": "attention",
+   "kind": "weights-over-positions",
+   "width": null,
+   "per": "token-pair",
+   "lane": 3,
+   "order": 4,
+   "about": "Each row of scores turned into shares that add to 1: how much each token takes from each earlier one. Head 1 of 12."
+  },
+  {
+   "id": "b0.mix",
+   "label": "Mix the values",
+   "group": "attention",
+   "kind": "mix",
+   "width": 768,
+   "per": "token",
+   "lane": 2,
+   "order": 5,
+   "about": "Each earlier token's value times the attention given to it, added up. The one step where tokens exchange information.",
+   "unit": "channel"
+  },
+  {
+   "id": "b0.attn_out",
+   "label": "Output layer",
+   "group": "attention",
+   "kind": "linear",
+   "width": 768,
+   "per": "token",
+   "lane": 2,
+   "order": 6,
+   "about": "A linear layer turning the mixed values into what attention adds to the stream.",
+   "unit": "channel",
+   "weights": 590592
+  },
+  {
+   "id": "b0.add1",
+   "label": "Add to the stream",
+   "group": null,
+   "kind": "add",
+   "width": 768,
+   "per": "token",
+   "lane": 0,
+   "order": 10,
+   "about": "Attention's result is added to the stream; nothing is overwritten.",
+   "unit": "channel"
+  },
+  {
+   "id": "b0.ln2",
+   "label": "Layer norm",
+   "group": "mlp",
+   "kind": "norm",
+   "width": 768,
+   "per": "token",
+   "lane": -1,
+   "order": 11,
+   "about": "The same rescaling, with its own scale and shift.",
+   "unit": "channel",
+   "weights": 1536
+  },
+  {
+   "id": "b0.mlp.act",
+   "label": "MLP neurons",
+   "group": "mlp",
+   "kind": "linear+bend",
+   "width": 3072,
+   "per": "token",
+   "lane": -1,
+   "order": 12,
+   "about": "3,072 neurons, each a weighted sum of the 768 channels passed through GELU. These are what the sparse autoencoder reads.",
+   "bend": "GELU",
+   "unit": "neuron",
+   "weights": 2362368
+  },
+  {
+   "id": "b0.mlp.out",
+   "label": "MLP layer 2",
+   "group": "mlp",
+   "kind": "linear",
+   "width": 768,
+   "per": "token",
+   "lane": -1,
+   "order": 13,
+   "about": "A linear layer going back down to 768.",
+   "unit": "channel",
+   "weights": 2360064
+  },
+  {
+   "id": "b0.add2",
+   "label": "Add to the stream",
+   "group": null,
+   "kind": "add",
+   "width": 768,
+   "per": "token",
+   "lane": 0,
+   "order": 14,
+   "about": "The MLP's result is added to the stream, which goes on to the next block.",
+   "unit": "channel"
+  },
+  {
+   "id": "rest",
+   "label": "11 more blocks, then a score for every token",
+   "group": null,
+   "kind": "collapsed",
+   "lane": 0,
+   "order": 20
+  },
+  {
+   "id": "sae.in",
+   "label": "Minus the usual level",
+   "group": "sae",
+   "kind": "difference",
+   "width": 3072,
+   "per": "token",
+   "lane": -2,
+   "order": 13,
+   "about": "One learnt number per neuron, close to its average, is taken off. What is left is how this token differs from the usual.",
+   "unit": "neuron",
+   "weights": 3072
+  },
+  {
+   "id": "sae.features",
+   "label": "Features",
+   "group": "sae",
+   "kind": "linear+bend",
+   "width": 32768,
+   "per": "token",
+   "lane": -2,
+   "order": 14,
+   "about": "32,768 neurons, each a weighted sum of the 3,072 MLP neurons passed through ReLU. For any one token almost all are zero.",
+   "bend": "ReLU",
+   "unit": "feature",
+   "weights": 100696064,
+   "sparse": true,
+   "described": true
+  },
+  {
+   "id": "sae.rebuild",
+   "label": "The rebuild",
+   "group": "sae",
+   "kind": "linear",
+   "width": 3072,
+   "per": "token",
+   "lane": -2,
+   "order": 15,
+   "about": "Each feature's pattern times how hard it fired, added up, plus the usual level. The sparse autoencoder's attempt at the MLP neurons.",
+   "unit": "neuron",
+   "weights": 100663296
+  }
+ ],
+ "edges": [
+  {
+   "from": "embed",
+   "to": "b0.ln1"
+  },
+  {
+   "from": "b0.ln1",
+   "to": "b0.q"
+  },
+  {
+   "from": "b0.ln1",
+   "to": "b0.k"
+  },
+  {
+   "from": "b0.ln1",
+   "to": "b0.v"
+  },
+  {
+   "from": "b0.q",
+   "to": "b0.scores"
+  },
+  {
+   "from": "b0.k",
+   "to": "b0.scores"
+  },
+  {
+   "from": "b0.scores",
+   "to": "b0.att"
+  },
+  {
+   "from": "b0.att",
+   "to": "b0.mix"
+  },
+  {
+   "from": "b0.v",
+   "to": "b0.mix"
+  },
+  {
+   "from": "b0.mix",
+   "to": "b0.attn_out"
+  },
+  {
+   "from": "b0.attn_out",
+   "to": "b0.add1"
+  },
+  {
+   "from": "b0.add1",
+   "to": "b0.ln2"
+  },
+  {
+   "from": "b0.ln2",
+   "to": "b0.mlp.act"
+  },
+  {
+   "from": "b0.mlp.act",
+   "to": "b0.mlp.out"
+  },
+  {
+   "from": "b0.mlp.out",
+   "to": "b0.add2"
+  },
+  {
+   "from": "b0.add2",
+   "to": "rest"
+  },
+  {
+   "from": "sae.in",
+   "to": "sae.features"
+  },
+  {
+   "from": "sae.features",
+   "to": "sae.rebuild"
+  },
+  {
+   "from": "embed",
+   "to": "b0.add1",
+   "kind": "carried"
+  },
+  {
+   "from": "b0.add1",
+   "to": "b0.add2",
+   "kind": "carried"
+  },
+  {
+   "from": "b0.mlp.act",
+   "to": "sae.in",
+   "kind": "reads"
+  }
+ ]
+}

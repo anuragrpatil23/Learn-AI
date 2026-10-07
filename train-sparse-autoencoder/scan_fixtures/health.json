@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "protocol": 1,
+ "name": "GPT-2 small with sparse autoencoders",
+ "device": "cpu",
+ "max_tokens": 64,
+ "supports": [
+  "run",
+  "values",
+  "unit",
+  "contrast",
+  "load"
+ ]
+}

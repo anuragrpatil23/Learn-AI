@@ -35,6 +35,7 @@ import numpy as np
 
 PROTOCOL = 1
 GRID_UNITS = 48                               # how many units the grid of a step shows at most
+HEAD_UNITS = 32                               # how many of a step's first units, in order, go with every run
 
 
 class Problem(Exception):
@@ -234,6 +235,10 @@ class Kit:
                     item.append(w)
         if node.get("sparse"):
             entry["on"] = [int(v) for v in (x != 0).sum(1)]
+        else:
+            # A step's first units in their own order, for a drawing that shows a row as it lies. Not sent for a
+            # sparse step, whose first units are nearly always off: its strongest units, in "grid", are drawn instead.
+            entry["head"] = [[r4(v) for v in row[:HEAD_UNITS]] for row in x]
         return entry
 
     def run(self, text, snap, top=12):
@@ -268,8 +273,9 @@ class Kit:
             out["usual"] = [r4(v) for v in array(usual)[start:start + count]]
         return out
 
-    def terms(self, snap, node_id, u, run, token, top=12):
-        """The products behind one unit's value for one token: the largest pushing it up and down, and the rest."""
+    def terms(self, snap, node_id, u, run, token, top=12, whole=False):
+        """The products behind one unit's value for one token: the largest pushing it up and down, and the rest.
+        With `whole`, the unit's every weight and input as well, for drawing the two rows in full."""
         r = self.result(run)
         if not 0 <= token < len(r["tokens"]):
             raise Problem("bad_request", "Token %d is outside the text." % token)
@@ -284,11 +290,14 @@ class Kit:
         down = [int(i) for i in order[::-1][:top] if products[i] < 0]
         line = lambda i: {"unit": i, "weight": r4(weights[i]), "input": r4(inputs[i]), "product": r4(products[i])}
         shown = set(up) | set(down)
-        return {"node": said["node"], "sum": r4(products.sum() + intercept), "intercept": r4(intercept), "count": int(len(products)),
-                "top": [line(i) for i in up], "bottom": [line(i) for i in down],
-                "rest": r4(sum(float(products[i]) for i in range(len(products)) if i not in shown))}
+        out = {"node": said["node"], "sum": r4(products.sum() + intercept), "intercept": r4(intercept), "count": int(len(products)),
+               "top": [line(i) for i in up], "bottom": [line(i) for i in down],
+               "rest": r4(sum(float(products[i]) for i in range(len(products)) if i not in shown))}
+        if whole:
+            out["weights"], out["inputs"] = [r4(v) for v in weights], [r4(v) for v in inputs]
+        return out
 
-    def unit(self, snap, node_id, u, run=None, token=None):
+    def unit(self, snap, node_id, u, run=None, token=None, whole=False):
         widths = {n["id"]: n.get("width") for n in self.graph(snap)["nodes"]}
         if widths.get(node_id) is None:
             raise Problem("unknown_node", "There is no node called %r with units." % node_id, 404)
@@ -297,7 +306,7 @@ class Kit:
         out = {"node": node_id, "unit": u}
         out.update(self.scanner.unit(snap, node_id, u) or {})
         if run is not None and token is not None:
-            made = self.terms(snap, node_id, u, run, token)
+            made = self.terms(snap, node_id, u, run, token, whole=whole)
             if made:
                 out["terms"] = made
         return out
@@ -355,7 +364,7 @@ class Kit:
                 return self.values(one("run"), one("node"), int(one("token", 0)), int(one("from", 0)), int(one("count", 4096)))
             if route == "unit":
                 return self.unit(self.snapshot(one("snapshot") or self.default()), one("node"), int(one("unit", -1)),
-                                 one("run"), None if one("token") is None else int(one("token")))
+                                 one("run"), None if one("token") is None else int(one("token")), one("all") in ("1", "true"))
             if route == "contrast" and method == "POST":
                 snap = self.snapshot(body.get("snapshot") or self.default())
                 node = body.get("node") or next((n["id"] for n in self.graph(snap)["nodes"] if n.get("sparse")), None)

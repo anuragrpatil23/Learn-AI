@@ -42,6 +42,7 @@ p.add_argument("--seed", type=int, default=0)
 p.add_argument("--device", default=None, help="cuda, mps or cpu; chosen automatically if left out")
 p.add_argument("--project", default="sae-gpt2-mlp0", help="the project the run is filed under in the viewer")
 p.add_argument("--logger", default="auto", choices=["auto", "wandb", "files"], help="wandb (offline) if installed, else plain files; or say which")
+p.add_argument("--checkpoint-hours", type=float, default=2.0, help="how often to save everything needed to carry on, should the job stop")
 args = p.parse_args()
 
 torch.manual_seed(args.seed); np.random.seed(args.seed)
@@ -66,16 +67,20 @@ def mlp_rows(ids):
 shards = sorted(glob.glob(args.tokens))
 assert shards, "no token files match " + args.tokens
 
-def row_stream():
-    """Yields blocks of rows, about 32,768 at a time, reading the token files in order, over and over."""
+def row_stream(skip=0):
+    """Yields blocks of rows, about 32,768 at a time, reading the token files in order, over and over.
+    `skip` is how many tokens to pass over first, so that a run carried on from a checkpoint reads new text."""
     per = max(1, 32768 // args.context)
     while True:
         for path in shards:
             toks = np.load(path, mmap_mode="r")
             n = (len(toks) // args.context) * args.context
-            for start in range(0, n - per * args.context + 1, per * args.context):
+            if skip >= n:
+                skip -= n; continue
+            for start in range(skip - skip % (per * args.context), n - per * args.context + 1, per * args.context):
                 chunk = torch.from_numpy(toks[start:start + per * args.context].astype(np.int64))
                 yield mlp_rows(chunk.view(per, args.context).to(dev))
+            skip = 0
 
 class Buffer:
     """Holds rows from many documents and hands them out in random order, refilling as it empties."""
@@ -94,7 +99,11 @@ class Buffer:
         out, self.rows = self.rows[:n], self.rows[n:]
         return out
 
-buf = Buffer(row_stream(), args.buffer)
+# A run that stopped part way carries on from its last checkpoint, reading on from where it had got to in the text.
+CKPT = os.path.join(args.out, "checkpoint.pt")
+resume = torch.load(CKPT, map_location=dev) if os.path.exists(CKPT) else None
+start_step = resume["step"] if resume else 0
+buf = Buffer(row_stream(skip=start_step * args.batch), args.buffer)   # one row per token, so rows used = tokens read
 
 # ---------- the sparse autoencoder ----------
 W_dec = torch.randn(N_IN, N_FEAT, device=dev)
@@ -102,8 +111,13 @@ W_dec /= W_dec.norm(dim=0, keepdim=True)                     # each feature's pa
 W_enc = W_dec.T.clone()                                      # the encoder starts as the decoder turned over
 b_enc = torch.zeros(N_FEAT, device=dev)
 b_dec = buf.rows[:65536].mean(0).clone()                     # each neuron's usual level starts at its average
+if resume:
+    for t, name in ((W_enc, "W_enc"), (b_enc, "b_enc"), (W_dec, "W_dec"), (b_dec, "b_dec")):
+        t.copy_(resume[name])
 params = [W_enc.requires_grad_(), b_enc.requires_grad_(), W_dec.requires_grad_(), b_dec.requires_grad_()]
 opt = torch.optim.Adam(params, lr=args.lr)
+if resume:
+    opt.load_state_dict(resume["opt"])
 
 def forward(x):
     f = torch.relu((x - b_dec) @ W_enc.T + b_enc)
@@ -128,7 +142,7 @@ def probe(word):
     return {"feature": j, "fired": round(float(f[0, j]), 3), "on": int((f[0] > 0).sum()),
             "responds_to": [tok.decode([int(i)]) for i in over_vocab.topk(6).indices]}
 
-fired_ever = torch.zeros(N_FEAT, dtype=torch.bool, device=dev)
+fired_ever = resume["fired_ever"].to(dev) if resume else torch.zeros(N_FEAT, dtype=torch.bool, device=dev)
 fired_window = torch.zeros(N_FEAT, device=dev); rows_window = 0
 steps = int(args.rows // args.batch)
 held_out = buf.batch(args.batch).clone()                      # one batch set aside before training starts, for the val/ numbers
@@ -224,8 +238,19 @@ def write_log(step, rows_seen, x, x_hat, f, t0):
 
 # ---------- training ----------
 saves = {0, steps // 100, steps // 10, steps}                  # snapshots, to look back at how the features formed
-t0 = time.time()
-for step in range(steps + 1):
+t0 = time.time() - (resume["seconds"] if resume else 0)       # minutes keep counting across a restart
+last_ckpt = time.time()
+
+def checkpoint(step):
+    """Everything needed to carry on from this step. Written to a new file first, so a job stopped mid-write leaves the old one."""
+    tmp = CKPT + ".tmp"
+    torch.save({"step": step, "W_enc": W_enc.detach(), "b_enc": b_enc.detach(), "W_dec": W_dec.detach(), "b_dec": b_dec.detach(),
+                "opt": opt.state_dict(), "fired_ever": fired_ever, "seconds": time.time() - t0}, tmp)
+    os.replace(tmp, CKPT)
+
+if resume:
+    print("carrying on from step", start_step, flush=True)
+for step in range(start_step, steps + 1):
     x = buf.batch(args.batch)
     x_hat, f = forward(x)
     loss = ((x - x_hat) ** 2).sum(-1).mean() + args.lam * f.sum(-1).mean()
@@ -241,6 +266,8 @@ for step in range(steps + 1):
             record.saved(snapshot, step)
     if step == steps:
         break
+    if time.time() - last_ckpt > args.checkpoint_hours * 3600:
+        checkpoint(step); last_ckpt = time.time()
     opt.zero_grad()
     loss.backward()
     with torch.no_grad():                                      # do not let the update change a pattern's length, only its direction

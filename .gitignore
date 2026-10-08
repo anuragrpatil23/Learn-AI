@@ -28,4 +28,6 @@ build-nanogpt/build_nanogpt/log/
 
 # train-sparse-autoencoder local data and runs
 train-sparse-autoencoder/data/
+train-sparse-autoencoder/data_8b/
+train-sparse-autoencoder/data_8b.log
 train-sparse-autoencoder/runs/

@@ -105,6 +105,19 @@ class Scanner:
         """More about one unit, as fields of the contract's unit reply (words, made_of, listens_to, used_by)."""
         return {}
 
+    def terms(self, snapshot, node, unit, rows):
+        """How one unit's value was made for one token, for a step that is a weighted sum.
+
+        `rows` is {node id: that token's row} for the run being asked about. Return what the unit reads, its weights,
+        what it multiplies them by, and its intercept, or None if the step is not a weighted sum:
+
+            {"node": "b0.ln2", "weights": w[:, unit], "input": rows["b0.ln2"], "intercept": b[unit]}
+
+        `input` is what is actually multiplied, so a step that takes a usual level off first gives the row with it
+        taken off. The kit does the rest: the products, the largest each way, what the others add up to, the sum.
+        """
+        return None
+
     def step_of(self, path):
         """The training step a weights file was saved at: the last number in its name."""
         found = re.findall(r"\d+", os.path.basename(path))
@@ -255,7 +268,27 @@ class Kit:
             out["usual"] = [r4(v) for v in array(usual)[start:start + count]]
         return out
 
-    def unit(self, snap, node_id, u):
+    def terms(self, snap, node_id, u, run, token, top=12):
+        """The products behind one unit's value for one token: the largest pushing it up and down, and the rest."""
+        r = self.result(run)
+        if not 0 <= token < len(r["tokens"]):
+            raise Problem("bad_request", "Token %d is outside the text." % token)
+        said = self.scanner.terms(snap, node_id, u, {id: x[token] for id, x in r["vals"].items()})
+        if not said:
+            return None
+        weights, inputs = array(said["weights"]).astype(np.float64).ravel(), array(said["input"]).astype(np.float64).ravel()
+        products = weights * inputs
+        intercept = float(said.get("intercept") or 0.0)
+        order = np.argsort(-products, kind="stable")
+        up = [int(i) for i in order[:top] if products[i] > 0]
+        down = [int(i) for i in order[::-1][:top] if products[i] < 0]
+        line = lambda i: {"unit": i, "weight": r4(weights[i]), "input": r4(inputs[i]), "product": r4(products[i])}
+        shown = set(up) | set(down)
+        return {"node": said["node"], "sum": r4(products.sum() + intercept), "intercept": r4(intercept), "count": int(len(products)),
+                "top": [line(i) for i in up], "bottom": [line(i) for i in down],
+                "rest": r4(sum(float(products[i]) for i in range(len(products)) if i not in shown))}
+
+    def unit(self, snap, node_id, u, run=None, token=None):
         widths = {n["id"]: n.get("width") for n in self.graph(snap)["nodes"]}
         if widths.get(node_id) is None:
             raise Problem("unknown_node", "There is no node called %r with units." % node_id, 404)
@@ -263,6 +296,10 @@ class Kit:
             raise Problem("unknown_unit", "%s has units 0 to %d." % (node_id, widths[node_id] - 1), 404)
         out = {"node": node_id, "unit": u}
         out.update(self.scanner.unit(snap, node_id, u) or {})
+        if run is not None and token is not None:
+            made = self.terms(snap, node_id, u, run, token)
+            if made:
+                out["terms"] = made
         return out
 
     # ---------- two texts against each other ----------
@@ -317,7 +354,8 @@ class Kit:
             if route == "values":
                 return self.values(one("run"), one("node"), int(one("token", 0)), int(one("from", 0)), int(one("count", 4096)))
             if route == "unit":
-                return self.unit(self.snapshot(one("snapshot") or self.default()), one("node"), int(one("unit", -1)))
+                return self.unit(self.snapshot(one("snapshot") or self.default()), one("node"), int(one("unit", -1)),
+                                 one("run"), None if one("token") is None else int(one("token")))
             if route == "contrast" and method == "POST":
                 snap = self.snapshot(body.get("snapshot") or self.default())
                 node = body.get("node") or next((n["id"] for n in self.graph(snap)["nodes"] if n.get("sparse")), None)
@@ -492,6 +530,12 @@ class SparseAutoencoder:
 
     def usual(self, node):
         return self.usual_level if node == self.reads else None
+
+    def terms(self, node, unit, rows):
+        """For a feature: its detector row, the read step with the usual level taken off, and its bias."""
+        if node != self.ids[1] or self.reads not in rows:
+            return None
+        return {"node": self.reads, "weights": self.detector[unit], "input": array(rows[self.reads]) - self.usual_level, "intercept": float(self.detector_bias[unit])}
 
     def unit(self, node, u):
         """A feature's breakdown, or for a unit it reads or rebuilds, the features that lean on it."""

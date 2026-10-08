@@ -109,6 +109,20 @@ class GPT2Scanner(scankit.Scanner):
             out["listens_to"]["all"] = [scankit.r4(v) for v in sae.detector[unit] / (sae.detector[unit] ** 2).sum() ** 0.5]
         return out
 
+    def terms(self, snapshot, node, unit, rows):
+        """For a step that is a weighted sum: what the unit reads, its weights, what they multiply, its intercept."""
+        qkv = {"b0.q": 0, "b0.k": C, "b0.v": 2 * C}
+        if node in qkv:                       # one table holds query, key and value side by side
+            return {"node": "b0.ln1", "weights": b0.attn.c_attn.weight[:, qkv[node] + unit], "input": rows["b0.ln1"], "intercept": b0.attn.c_attn.bias[qkv[node] + unit]}
+        layers = {"b0.attn_out": ("b0.mix", b0.attn.c_proj), "b0.mlp.act": ("b0.ln2", b0.mlp.c_fc), "b0.mlp.out": ("b0.mlp.act", b0.mlp.c_proj)}
+        if node in layers:
+            reads, layer = layers[node]
+            return {"node": reads, "weights": layer.weight[:, unit], "input": rows[reads], "intercept": layer.bias[unit]}
+        sae = snapshot.data
+        if node == "sae.rebuild":             # each feature's pattern at this neuron times how hard it fired, plus the usual level
+            return {"node": "sae.features", "weights": sae.pattern[unit], "input": rows["sae.features"], "intercept": float(sae.usual_level[unit])}
+        return sae.terms(node, unit, rows)
+
     def graph(self, snapshot):
         n = snapshot.data.n
         nodes = [

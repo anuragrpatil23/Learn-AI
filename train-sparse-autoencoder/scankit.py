@@ -411,7 +411,10 @@ def server(scanner, runs, port=8790):
     """The scanner as an HTTP server on 127.0.0.1, not yet started. Port 0 lets the system choose one."""
     kit = Kit(scanner, runs)
     kit.find()
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), kit.handler())
+    class Server(ThreadingHTTPServer):
+        request_queue_size = 128              # a view asks for a sheet in several pieces at once; the default of 5 turns some away
+        daemon_threads = True
+    httpd = Server(("127.0.0.1", port), kit.handler())
     httpd.kit = kit
     return httpd
 

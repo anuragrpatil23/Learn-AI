@@ -31,3 +31,6 @@ train-sparse-autoencoder/data/
 train-sparse-autoencoder/data_8b/
 train-sparse-autoencoder/data_8b.log
 train-sparse-autoencoder/runs/
+
+# framing-inside-the-model: sampled rows are large and rebuilt from the models
+framing-inside-the-model/rows_*.pt

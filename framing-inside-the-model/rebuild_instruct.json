@@ -1,0 +1,491 @@
+{
+ "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+ "sae": "Qwen/SAE-Res-Qwen3-30B-A3B-Base-W32K-L0_50",
+ "rows": 4824,
+ "tokens": [
+  1407,
+  1407,
+  594,
+  594,
+  2718,
+  2718,
+  1264,
+  1264,
+  1281,
+  1281,
+  1000,
+  1000,
+  2656,
+  2656,
+  634,
+  634,
+  1198,
+  1198,
+  1039,
+  1039,
+  1226,
+  1226,
+  1885,
+  1885
+ ],
+ "seconds_per_prompt": [
+  8.406383991241455,
+  3.10284423828125,
+  2.3166661262512207,
+  2.272218704223633,
+  3.9830448627471924,
+  3.78928279876709,
+  2.657885789871216,
+  2.646582841873169,
+  2.639335870742798,
+  2.6605541706085205,
+  2.3909428119659424,
+  2.4047658443450928,
+  3.6618380546569824,
+  3.465200901031494,
+  2.218230962753296,
+  2.222275972366333,
+  2.490584135055542,
+  2.4884660243988037,
+  2.4317429065704346,
+  2.393947124481201,
+  2.4046409130096436,
+  2.4424610137939453,
+  2.929500102996826,
+  2.8909218311309814
+ ],
+ "layers": [
+  {
+   "layer": 0,
+   "outsized": 0,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.0441,
+   "median_share_lost_at_answer": 0.0395,
+   "usual_not_rebuilt": 0.1668,
+   "median_length": 1.65
+  },
+  {
+   "layer": 1,
+   "outsized": 7,
+   "outsized_at_first_position": 4,
+   "median_share_lost": 0.067,
+   "median_share_lost_at_answer": 0.1327,
+   "usual_not_rebuilt": 0.2167,
+   "median_length": 2.43
+  },
+  {
+   "layer": 2,
+   "outsized": 7,
+   "outsized_at_first_position": 4,
+   "median_share_lost": 0.0784,
+   "median_share_lost_at_answer": 0.1407,
+   "usual_not_rebuilt": 0.2228,
+   "median_length": 3.32
+  },
+  {
+   "layer": 3,
+   "outsized": 7,
+   "outsized_at_first_position": 4,
+   "median_share_lost": 0.0933,
+   "median_share_lost_at_answer": 0.1324,
+   "usual_not_rebuilt": 0.2259,
+   "median_length": 4.49
+  },
+  {
+   "layer": 4,
+   "outsized": 7,
+   "outsized_at_first_position": 4,
+   "median_share_lost": 0.1084,
+   "median_share_lost_at_answer": 0.1249,
+   "usual_not_rebuilt": 0.2548,
+   "median_length": 5.05
+  },
+  {
+   "layer": 5,
+   "outsized": 7,
+   "outsized_at_first_position": 4,
+   "median_share_lost": 0.1165,
+   "median_share_lost_at_answer": 0.1594,
+   "usual_not_rebuilt": 0.2549,
+   "median_length": 5.82
+  },
+  {
+   "layer": 6,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.124,
+   "median_share_lost_at_answer": 0.1314,
+   "usual_not_rebuilt": 0.3289,
+   "median_length": 6.42
+  },
+  {
+   "layer": 7,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1216,
+   "median_share_lost_at_answer": 0.1274,
+   "usual_not_rebuilt": 0.3439,
+   "median_length": 7.06
+  },
+  {
+   "layer": 8,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1248,
+   "median_share_lost_at_answer": 0.1368,
+   "usual_not_rebuilt": 0.3135,
+   "median_length": 7.97
+  },
+  {
+   "layer": 9,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1315,
+   "median_share_lost_at_answer": 0.1548,
+   "usual_not_rebuilt": 0.3275,
+   "median_length": 8.7
+  },
+  {
+   "layer": 10,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.136,
+   "median_share_lost_at_answer": 0.1794,
+   "usual_not_rebuilt": 0.3309,
+   "median_length": 9.53
+  },
+  {
+   "layer": 11,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.146,
+   "median_share_lost_at_answer": 0.1855,
+   "usual_not_rebuilt": 0.3378,
+   "median_length": 10.02
+  },
+  {
+   "layer": 12,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1569,
+   "median_share_lost_at_answer": 0.1884,
+   "usual_not_rebuilt": 0.3475,
+   "median_length": 10.31
+  },
+  {
+   "layer": 13,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.17,
+   "median_share_lost_at_answer": 0.2045,
+   "usual_not_rebuilt": 0.3537,
+   "median_length": 10.8
+  },
+  {
+   "layer": 14,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1655,
+   "median_share_lost_at_answer": 0.1846,
+   "usual_not_rebuilt": 0.3421,
+   "median_length": 11.59
+  },
+  {
+   "layer": 15,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1694,
+   "median_share_lost_at_answer": 0.221,
+   "usual_not_rebuilt": 0.3504,
+   "median_length": 12.21
+  },
+  {
+   "layer": 16,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1636,
+   "median_share_lost_at_answer": 0.2079,
+   "usual_not_rebuilt": 0.3364,
+   "median_length": 12.72
+  },
+  {
+   "layer": 17,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1628,
+   "median_share_lost_at_answer": 0.2305,
+   "usual_not_rebuilt": 0.3351,
+   "median_length": 12.75
+  },
+  {
+   "layer": 18,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1639,
+   "median_share_lost_at_answer": 0.1964,
+   "usual_not_rebuilt": 0.3267,
+   "median_length": 12.85
+  },
+  {
+   "layer": 19,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1598,
+   "median_share_lost_at_answer": 0.1978,
+   "usual_not_rebuilt": 0.3328,
+   "median_length": 13.2
+  },
+  {
+   "layer": 20,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1683,
+   "median_share_lost_at_answer": 0.199,
+   "usual_not_rebuilt": 0.3243,
+   "median_length": 13.77
+  },
+  {
+   "layer": 21,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1697,
+   "median_share_lost_at_answer": 0.1999,
+   "usual_not_rebuilt": 0.3328,
+   "median_length": 14.65
+  },
+  {
+   "layer": 22,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1729,
+   "median_share_lost_at_answer": 0.2,
+   "usual_not_rebuilt": 0.3472,
+   "median_length": 15.72
+  },
+  {
+   "layer": 23,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1732,
+   "median_share_lost_at_answer": 0.189,
+   "usual_not_rebuilt": 0.3577,
+   "median_length": 16.49
+  },
+  {
+   "layer": 24,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.181,
+   "median_share_lost_at_answer": 0.1923,
+   "usual_not_rebuilt": 0.3677,
+   "median_length": 16.99
+  },
+  {
+   "layer": 25,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1811,
+   "median_share_lost_at_answer": 0.2161,
+   "usual_not_rebuilt": 0.3764,
+   "median_length": 17.9
+  },
+  {
+   "layer": 26,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1763,
+   "median_share_lost_at_answer": 0.2306,
+   "usual_not_rebuilt": 0.3622,
+   "median_length": 19.09
+  },
+  {
+   "layer": 27,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1768,
+   "median_share_lost_at_answer": 0.2118,
+   "usual_not_rebuilt": 0.3713,
+   "median_length": 20.13
+  },
+  {
+   "layer": 28,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1587,
+   "median_share_lost_at_answer": 0.1994,
+   "usual_not_rebuilt": 0.368,
+   "median_length": 21.76
+  },
+  {
+   "layer": 29,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1576,
+   "median_share_lost_at_answer": 0.2192,
+   "usual_not_rebuilt": 0.3661,
+   "median_length": 22.1
+  },
+  {
+   "layer": 30,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1508,
+   "median_share_lost_at_answer": 0.202,
+   "usual_not_rebuilt": 0.3579,
+   "median_length": 22.81
+  },
+  {
+   "layer": 31,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1376,
+   "median_share_lost_at_answer": 0.1895,
+   "usual_not_rebuilt": 0.3504,
+   "median_length": 24.06
+  },
+  {
+   "layer": 32,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1453,
+   "median_share_lost_at_answer": 0.197,
+   "usual_not_rebuilt": 0.3362,
+   "median_length": 25.32
+  },
+  {
+   "layer": 33,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1481,
+   "median_share_lost_at_answer": 0.2011,
+   "usual_not_rebuilt": 0.3353,
+   "median_length": 26.49
+  },
+  {
+   "layer": 34,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1505,
+   "median_share_lost_at_answer": 0.2026,
+   "usual_not_rebuilt": 0.3438,
+   "median_length": 28.21
+  },
+  {
+   "layer": 35,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1491,
+   "median_share_lost_at_answer": 0.2522,
+   "usual_not_rebuilt": 0.3394,
+   "median_length": 29.91
+  },
+  {
+   "layer": 36,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1566,
+   "median_share_lost_at_answer": 0.233,
+   "usual_not_rebuilt": 0.3475,
+   "median_length": 30.72
+  },
+  {
+   "layer": 37,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1642,
+   "median_share_lost_at_answer": 0.2487,
+   "usual_not_rebuilt": 0.3435,
+   "median_length": 33.04
+  },
+  {
+   "layer": 38,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.165,
+   "median_share_lost_at_answer": 0.276,
+   "usual_not_rebuilt": 0.3231,
+   "median_length": 36.78
+  },
+  {
+   "layer": 39,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1803,
+   "median_share_lost_at_answer": 0.2828,
+   "usual_not_rebuilt": 0.3347,
+   "median_length": 39.15
+  },
+  {
+   "layer": 40,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1733,
+   "median_share_lost_at_answer": 0.2522,
+   "usual_not_rebuilt": 0.3283,
+   "median_length": 45.86
+  },
+  {
+   "layer": 41,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1692,
+   "median_share_lost_at_answer": 0.2259,
+   "usual_not_rebuilt": 0.3139,
+   "median_length": 51.98
+  },
+  {
+   "layer": 42,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1676,
+   "median_share_lost_at_answer": 0.2255,
+   "usual_not_rebuilt": 0.3109,
+   "median_length": 60.66
+  },
+  {
+   "layer": 43,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1793,
+   "median_share_lost_at_answer": 0.2043,
+   "usual_not_rebuilt": 0.3316,
+   "median_length": 69.68
+  },
+  {
+   "layer": 44,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1682,
+   "median_share_lost_at_answer": 0.1789,
+   "usual_not_rebuilt": 0.3479,
+   "median_length": 80.68
+  },
+  {
+   "layer": 45,
+   "outsized": 3,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1617,
+   "median_share_lost_at_answer": 0.1692,
+   "usual_not_rebuilt": 0.3614,
+   "median_length": 91.15
+  },
+  {
+   "layer": 46,
+   "outsized": 0,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1438,
+   "median_share_lost_at_answer": 0.1394,
+   "usual_not_rebuilt": 0.3278,
+   "median_length": 107.3
+  },
+  {
+   "layer": 47,
+   "outsized": 0,
+   "outsized_at_first_position": 0,
+   "median_share_lost": 0.1983,
+   "median_share_lost_at_answer": 0.4928,
+   "usual_not_rebuilt": 0.5017,
+   "median_length": 163.45
+  }
+ ]
+}

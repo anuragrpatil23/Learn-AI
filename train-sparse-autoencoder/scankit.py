@@ -128,6 +128,21 @@ class Scanner:
         """Weights that belong to no run, as [{"id", "path", "label"}]: a published network to compare with, say."""
         return []
 
+    def peaks(self, snapshot, node, units):
+        """For a node marked `described`: for each unit, how hard the best of its words fires it in the test that found
+        them, or None. The view shows a unit's words only where that is a fair part of what it does on the text. By
+        default, from the snapshot's SparseAutoencoder."""
+        sae = self.autoencoder(snapshot)
+        if sae is None or node != sae.ids[1] or sae.probe is None:
+            return None
+        sae.words(units)
+        return [r4(sae.words_of[u][0][1]) if sae.words_of.get(u) else None for u in units]
+
+    def words_test(self, snapshot, node):
+        """For a node marked `described`: the test its words come from, in words, or None."""
+        sae = self.autoencoder(snapshot)
+        return sae.test if sae is not None and node == sae.ids[1] else None
+
     def autoencoder(self, snapshot):
         """The SparseAutoencoder in a snapshot, if there is one: the kit then says how each token's features rebuild
         what it reads (the run reply's `firing`, the `owner` of each unit it reads). By default, the snapshot's data
@@ -238,8 +253,18 @@ class Kit:
                           "words": self.scanner.words(snap, node["id"], units) if described else None}}
         if described:
             for row in entry["top"]:
-                for item, w in zip(row, self.scanner.words(snap, node["id"], [u for u, _ in row])):
+                units_here = [u for u, _ in row]
+                peaks = self.scanner.peaks(snap, node["id"], units_here)
+                for k, (item, w) in enumerate(zip(row, self.scanner.words(snap, node["id"], units_here))):
                     item.append(w)
+                    if peaks is not None:
+                        item.append(peaks[k])
+            peaks = self.scanner.peaks(snap, node["id"], units)
+            if peaks is not None:
+                entry["grid"]["peaks"] = peaks
+            test = self.scanner.words_test(snap, node["id"])
+            if test:
+                entry["words_test"] = test
         if node.get("sparse"):
             entry["on"] = [int(v) for v in (x != 0).sum(1)]
         else:

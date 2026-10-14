@@ -106,6 +106,11 @@ start_step = resume["step"] if resume else 0
 buf = Buffer(row_stream(skip=start_step * args.batch), args.buffer)   # one row per token, so rows used = tokens read
 
 # ---------- the sparse autoencoder ----------
+# Bare tensors, not nn.Linear, though nn.Linear does the same arithmetic (x @ W.T + b). Why:
+# b_dec is one bias used at both ends (taken off before the encoder, added back after the decoder), so it
+# would sit outside the modules anyway; every weight is set by hand below, so nn.Linear's own starting
+# weights would be overwritten; the decoder's columns are put back to length 1 after each step, which needs
+# the matrix in hand; and forward() then reads like the paper's two equations. nn.Linear would work too.
 W_dec = torch.randn(N_IN, N_FEAT, device=dev)
 W_dec /= W_dec.norm(dim=0, keepdim=True)                     # each feature's pattern starts, and stays, at length 1
 W_enc = W_dec.T.clone()                                      # the encoder starts as the decoder turned over

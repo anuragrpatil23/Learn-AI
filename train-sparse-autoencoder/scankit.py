@@ -128,6 +128,13 @@ class Scanner:
         """Weights that belong to no run, as [{"id", "path", "label"}]: a published network to compare with, say."""
         return []
 
+    def autoencoder(self, snapshot):
+        """The SparseAutoencoder in a snapshot, if there is one: the kit then says how each token's features rebuild
+        what it reads (the run reply's `firing`, the `owner` of each unit it reads). By default, the snapshot's data
+        when that is one."""
+        data = getattr(snapshot, "data", None)
+        return data if isinstance(data, SparseAutoencoder) else None
+
 
 class Kit:
     """A scanner being served: its snapshots, its recent runs, and the contract's routes.
@@ -246,6 +253,9 @@ class Kit:
         spec = self.spec(snap)
         out = {"run": name, "snapshot": snap.id, "tokens": self.tokens_of(tokens),
                "nodes": {id: self.node_reply(x, spec[id], snap, top) for id, x in vals.items() if id in spec}}
+        sae = self.scanner.autoencoder(snap)
+        if sae is not None and sae.ids[1] in out["nodes"] and sae.reads in vals and sae.ids[1] in vals:
+            out["nodes"][sae.ids[1]]["firing"] = [sae.firing(x, f) for x, f in zip(vals[sae.reads], vals[sae.ids[1]])]
         nxt = self.scanner.next([t[0] for t in tokens])
         if nxt is not None:
             out["next"] = nxt
@@ -271,6 +281,9 @@ class Kit:
         usual = self.scanner.usual(r["snapshot"], node_id)
         if usual is not None:
             out["usual"] = [r4(v) for v in array(usual)[start:start + count]]
+        sae = self.scanner.autoencoder(r["snapshot"])
+        if sae is not None and node_id == sae.reads and sae.ids[1] in r["vals"]:
+            out["owner"] = sae.owner(r["vals"][sae.ids[1]][token])[start:start + count]
         return out
 
     def terms(self, snap, node_id, u, run, token, top=12, whole=False):
@@ -514,6 +527,30 @@ class SparseAutoencoder:
         x_in = array(x) - self.usual_level
         feats = np.maximum(x_in @ self.detector.T + self.detector_bias, 0)
         return {self.ids[0]: x_in, self.ids[1]: feats, self.ids[2]: feats @ self.pattern.T + self.usual_level}
+
+    def firing(self, x, feats):
+        """How one token's features rebuild its row x of the step read: each feature that is on, strongest first, as
+        [unit, value, share of the firing, what it rebuilds alone], and what the strongest 1, 3 and all rebuild. What a
+        set of features rebuilds is 1 - |x - usual - their part|^2 / |x - usual|^2."""
+        x_in, feats = array(x) - self.usual_level, array(feats)
+        on = np.nonzero(feats)[0]
+        on = on[np.argsort(-feats[on], kind="stable")]
+        total, base = float(feats[on].sum()), float(x_in @ x_in)
+        if not len(on) or base <= 0:
+            return {"total": r4(total), "units": [], "rebuilt": None}
+        parts = self.pattern[:, on] * feats[on]                       # each feature's part of each unit read
+        alone = 1 - ((x_in[:, None] - parts) ** 2).sum(0) / base
+        upto = lambda k: 1 - float(((x_in - parts[:, :k].sum(1)) ** 2).sum()) / base
+        return {"total": r4(total), "units": [[int(u), r4(feats[u]), r4(feats[u] / total), r4(a)] for u, a in zip(on, alone)],
+                "rebuilt": {"top1": r4(upto(1)), "top3": r4(upto(3)), "all": r4(upto(len(on)))}}
+
+    def owner(self, feats):
+        """For each unit read, the feature that puts the most into its rebuilt value for one token, or None if none is on."""
+        feats = array(feats)
+        on = np.nonzero(feats)[0]
+        if not len(on):
+            return [None] * self.pattern.shape[0]
+        return [int(u) for u in on[np.abs(self.pattern[:, on] * feats[on]).argmax(1)]]
 
     def words(self, units, n=4):
         """For each feature, the probe inputs that fire it hardest, or None where there is no probe or none fire it."""

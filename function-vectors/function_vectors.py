@@ -1,6 +1,8 @@
 """Function vectors, from Todd et al. 2023, "Function Vectors in Large Language Models".
 
-Task: opposites, "hot -> cold, big -> small, up -> down, fast ->" -> " slow". Steps:
+Task: opposites, "hot -> cold, big -> small, up -> down, fast ->" -> " slow". Steps 1 to 3 are activation
+patching (as in ../activation-patching/causal_tracing.py), used to find the heads; steps 4 and 5 are steering,
+building a new row and adding it to the stream.
   1. clean prompts (three examples, then a question word); save each head's output at the last word,
      averaged over the prompts
   2. broken prompts: the same, with the examples' answers shuffled, so the task cannot be worked out
@@ -80,7 +82,7 @@ top = sorted(((gain[l][h], l, h) for l in range(L) for h in range(H)), reverse=T
 print(f"clean {p_clean:.4f}  broken {p_broken:.4f}")
 for g, l, h in top: print(f"  block {l} head {h}: +{g:.4f}")
 
-# 4. the function vector
+# 4. the function vector (from here on, steering: nothing is swapped between runs, a new row is built and added)
 W = lambda l: tr.h[l].attn.c_proj.weight  # GPT-2 stores it as [in, out]
 fv = sum(heads_out[l][h * HS:(h + 1) * HS] @ W(l)[h * HS:(h + 1) * HS] for _, l, h in top)
 

@@ -47,6 +47,12 @@ def block(x, b, keep=False):
     return out, d
 
 R = lambda t: [[round(float(v), 4) for v in row] for row in t]
+def blockdict(d, w):
+    T = d["scores"].shape[0]
+    sc = d["scores"].clone(); sc[torch.triu(torch.ones(T, T), 1) == 1] = -1e9
+    return dict(ln1=dict(out=w(d["ln1"]), mean=R1(d["ln1_mean"]), sd=R1(d["ln1_sd"])), q=w(d["q"]), k=w(d["k"]), v=w(d["v"]),
+                scores=R(sc), att=R(d["att"]), headsOut=w(d["headsOut"]), attnOut=w(d["attnOut"]), residMid=w(d["residMid"]),
+                ln2=dict(out=w(d["ln2"]), mean=R1(d["ln2_mean"]), sd=R1(d["ln2_sd"])), fc=w(d["fc"]), act=w(d["act"]), mlpOut=w(d["mlpOut"]), residOut=w(d["residOut"]))
 R1 = lambda t: [round(float(v), 4) for v in t]
 def word(i):
     s = tok.decode([i])
@@ -75,19 +81,14 @@ with torch.no_grad():
             vocab.append(dict(ids=top.tolist(), strs=[word(i) for i in top.tolist()], logits=R(logits[:, top]), probs=R(probs[:, top]),
                               W=R(tr.wte.weight[top][:, :WIN])))
         w = lambda t: R(t[:, :WIN])
-        sc = d["scores"].clone(); sc[torch.triu(torch.ones(T, T), 1) == 1] = -1e9
         runs.append(dict(prompt=p.replace("\n", " "), qlen=qlen, tokens=full.tolist(), strs=[word(i) for i in full.tolist()], check=round(check, 5),
             embed=dict(wte=w(wte), wpe=w(wpe), out=w(emb)),
-            b0=dict(ln1=dict(out=w(d["ln1"]), mean=R1(d["ln1_mean"]), sd=R1(d["ln1_sd"])), q=w(d["q"]), k=w(d["k"]), v=w(d["v"]),
-                    scores=R(sc), att=R(d["att"]), headsOut=w(d["headsOut"]), attnOut=w(d["attnOut"]), residMid=w(d["residMid"]),
-                    ln2=dict(out=w(d["ln2"]), mean=R1(d["ln2_mean"]), sd=R1(d["ln2_sd"])), fc=w(d["fc"]), act=w(d["act"]), mlpOut=w(d["mlpOut"]), residOut=w(d["residOut"])),
-            b1=dict(att=R(d1["att"]), headsOut=w(d1["headsOut"]), residMid=w(d1["residMid"]), residOut=w(d1["residOut"])),
+            b0=blockdict(d, w), b1=blockdict(d1, w),
             fin=dict(residIn=w(x), lnF=dict(out=w(lf), mean=R1(mf), sd=R1(sf)), vocab=vocab)))
         print(f"{p!r}: {qlen} tokens in, wrote {tok.decode(full[qlen:])!r}; hand-written forward pass differs from the library by {check:.1e}")
 
-b = tr.h[0]
 W = lambda m, r0=0: R(m.weight[:WIN, r0:r0 + WIN].T)     # Conv1D stores (in, out); row j here = neuron j's slopes
-weights = dict(
+def blockweights(b): return dict(
     ln1=dict(g=R1(b.ln_1.weight[:WIN]), b=R1(b.ln_1.bias[:WIN])),
     q=dict(W=W(b.attn.c_attn, 0), b=R1(b.attn.c_attn.bias[0:WIN])),
     k=dict(W=W(b.attn.c_attn, C), b=R1(b.attn.c_attn.bias[C:C + WIN])),
@@ -97,7 +98,9 @@ weights = dict(
     fc=dict(W=W(b.mlp.c_fc), b=R1(b.mlp.c_fc.bias[:WIN])),
     mlpOut=dict(W=W(b.mlp.c_proj), b=R1(b.mlp.c_proj.bias[:WIN])),
     lnF=dict(g=R1(tr.ln_f.weight[:WIN]), b=R1(tr.ln_f.bias[:WIN])))
+weights = blockweights(tr.h[0])
+weights_b1 = blockweights(tr.h[1])  # the second block, for drawings that follow a change one block further
 meta = dict(model="GPT-2 small", C=C, H=H, HS=HS, M=4 * C, V=tr.wte.weight.shape[0], nBlocks=len(tr.h), blockSize=tr.wpe.weight.shape[0], win=WIN,
             nWeights=sum(p.numel() for p in model.parameters()))
-json.dump(dict(meta=meta, weights=weights, runs=runs), open(sys.argv[1], "w"), separators=(",", ":"))
+json.dump(dict(meta=meta, weights=weights, weights_b1=weights_b1, runs=runs), open(sys.argv[1], "w"), separators=(",", ":"))
 print("meta:", meta)

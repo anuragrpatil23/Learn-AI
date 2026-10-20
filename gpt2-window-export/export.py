@@ -6,13 +6,13 @@ the matching 8x8 corner of each weight matrix. Sizes in the drawing are the real
 50257); only the window is drawn in detail. The forward pass is written out by hand so every
 intermediate value is available, and is checked against the library's own output.
 
-Usage: python export.py <output.json>
+Usage: python export.py <output.json> [prompt ...]
 """
 import sys, json, math, torch
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 WIN, NEW = 8, 8
-PROMPTS = ["Q: Why is the sky blue?\nA:", "Q: Why is the sea blue?\nA:", "Q: Why is the grass green?\nA:"]
+PROMPTS = sys.argv[2:] or ["Q: Why is the sky blue?\nA:", "Q: Why is the sea blue?\nA:", "Q: Why is the grass green?\nA:"]
 tok = GPT2TokenizerFast.from_pretrained("gpt2")
 model = GPT2LMHeadModel.from_pretrained("gpt2").eval()
 tr = model.transformer
@@ -62,7 +62,8 @@ with torch.no_grad():
         wte, wpe = tr.wte.weight[full], tr.wpe.weight[:T]
         x = wte + wpe; emb = x
         x, d = block(x, tr.h[0], keep=True)
-        for b in tr.h[1:]: x, _ = block(x, b)
+        x, d1 = block(x, tr.h[1], keep=True)   # the second block, for drawings that follow a change one block further
+        for b in tr.h[2:]: x, _ = block(x, b)
         lf, mf, sf = ln(x, tr.ln_f)
         logits = lf @ tr.wte.weight.T
         check = (logits - model(full[None]).logits[0]).abs().max().item()
@@ -80,6 +81,7 @@ with torch.no_grad():
             b0=dict(ln1=dict(out=w(d["ln1"]), mean=R1(d["ln1_mean"]), sd=R1(d["ln1_sd"])), q=w(d["q"]), k=w(d["k"]), v=w(d["v"]),
                     scores=R(sc), att=R(d["att"]), headsOut=w(d["headsOut"]), attnOut=w(d["attnOut"]), residMid=w(d["residMid"]),
                     ln2=dict(out=w(d["ln2"]), mean=R1(d["ln2_mean"]), sd=R1(d["ln2_sd"])), fc=w(d["fc"]), act=w(d["act"]), mlpOut=w(d["mlpOut"]), residOut=w(d["residOut"])),
+            b1=dict(att=R(d1["att"]), headsOut=w(d1["headsOut"]), residMid=w(d1["residMid"]), residOut=w(d1["residOut"])),
             fin=dict(residIn=w(x), lnF=dict(out=w(lf), mean=R1(mf), sd=R1(sf)), vocab=vocab)))
         print(f"{p!r}: {qlen} tokens in, wrote {tok.decode(full[qlen:])!r}; hand-written forward pass differs from the library by {check:.1e}")
 

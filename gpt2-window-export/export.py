@@ -42,7 +42,7 @@ def block(x, b, keep=False):
     mo = act @ b.mlp.c_proj.weight + b.mlp.c_proj.bias
     out = mid + mo
     if keep:
-        d = dict(ln1=l1, ln1_mean=m1, ln1_sd=s1, q=q, k=k, v=v, scores=sc[0], att=att[0], headsOut=ho, attnOut=ao,
+        d = dict(ln1=l1, ln1_mean=m1, ln1_sd=s1, q=q, k=k, v=v, scores=sc[0], att=att[0], scores_all=sc, att_all=att, headsOut=ho, attnOut=ao,
                  residMid=mid, ln2=l2, ln2_mean=m2, ln2_sd=s2, fc=fc, act=act, mlpOut=mo, residOut=out)
     return out, d
 
@@ -54,6 +54,15 @@ def blockdict(d, w):
                 scores=R(sc), att=R(d["att"]), headsOut=w(d["headsOut"]), attnOut=w(d["attnOut"]), residMid=w(d["residMid"]),
                 ln2=dict(out=w(d["ln2"]), mean=R1(d["ln2_mean"]), sd=R1(d["ln2_sd"])), fc=w(d["fc"]), act=w(d["act"]), mlpOut=w(d["mlpOut"]), residOut=w(d["residOut"]))
 R1 = lambda t: [round(float(v), 4) for v in t]
+def headdict(d):
+    # Every head of the block: its own similarity and weight triangles, and the first 8 of its own 64 channels
+    # of the queries, keys, values and mixed values (head h owns channels 64h to 64h+63).
+    T = d["scores"].shape[0]; out = []
+    for h in range(H):
+        sc = d["scores_all"][h].clone(); sc[torch.triu(torch.ones(T, T), 1) == 1] = -1e9
+        cw = lambda t: R(t[:, h * HS:h * HS + WIN])
+        out.append(dict(q=cw(d["q"]), k=cw(d["k"]), v=cw(d["v"]), scores=R(sc), att=R(d["att_all"][h]), headsOut=cw(d["headsOut"])))
+    return out
 def word(i):
     s = tok.decode([i])
     return s.replace("\n", "\\n").strip() or repr(s)
@@ -83,7 +92,7 @@ with torch.no_grad():
         w = lambda t: R(t[:, :WIN])
         runs.append(dict(prompt=p.replace("\n", " "), qlen=qlen, tokens=full.tolist(), strs=[word(i) for i in full.tolist()], check=round(check, 5),
             embed=dict(wte=w(wte), wpe=w(wpe), out=w(emb)),
-            b0=blockdict(d, w), b1=blockdict(d1, w),
+            b0=dict(blockdict(d, w), heads=headdict(d)), b1=blockdict(d1, w),
             fin=dict(residIn=w(x), lnF=dict(out=w(lf), mean=R1(mf), sd=R1(sf)), vocab=vocab)))
         print(f"{p!r}: {qlen} tokens in, wrote {tok.decode(full[qlen:])!r}; hand-written forward pass differs from the library by {check:.1e}")
 
@@ -99,6 +108,14 @@ def blockweights(b): return dict(
     mlpOut=dict(W=W(b.mlp.c_proj), b=R1(b.mlp.c_proj.bias[:WIN])),
     lnF=dict(g=R1(tr.ln_f.weight[:WIN]), b=R1(tr.ln_f.bias[:WIN])))
 weights = blockweights(tr.h[0])
+# per head, the weights behind the 8 channels drawn for it: neurons 64h..64h+7 of the query, key and value layers
+# (their slopes on the first 8 inputs), and the output layer's slopes on those same 8 channels of the mixed values
+b = tr.h[0]
+weights["heads"] = [dict(
+    q=dict(W=W(b.attn.c_attn, h * HS), b=R1(b.attn.c_attn.bias[h * HS:h * HS + WIN])),
+    k=dict(W=W(b.attn.c_attn, C + h * HS), b=R1(b.attn.c_attn.bias[C + h * HS:C + h * HS + WIN])),
+    v=dict(W=W(b.attn.c_attn, 2 * C + h * HS), b=R1(b.attn.c_attn.bias[2 * C + h * HS:2 * C + h * HS + WIN])),
+    attnOut=dict(W=R(b.attn.c_proj.weight[h * HS:h * HS + WIN, :WIN].T), b=R1(b.attn.c_proj.bias[:WIN]))) for h in range(H)]
 weights_b1 = blockweights(tr.h[1])  # the second block, for drawings that follow a change one block further
 meta = dict(model="GPT-2 small", C=C, H=H, HS=HS, M=4 * C, V=tr.wte.weight.shape[0], nBlocks=len(tr.h), blockSize=tr.wpe.weight.shape[0], win=WIN,
             nWeights=sum(p.numel() for p in model.parameters()))

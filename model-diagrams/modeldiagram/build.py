@@ -179,7 +179,12 @@ class Builder:
         src = self.data[self.cur]
         out = self.tensor(f"{oid}.out", src, self.rows() + [self.ax("width")], note="the rows with their place added")
         self.fill.append(out)
-        if c.out.dim() == src.dim() and list(c.out.shape[1:]) == list(src.shape[1:]):
+        blend = next((d["weights"] for what, d in c.caught if what == "blend"), None)
+        if blend is not None and c.out.dim() == 3:
+            # a patch's place row is the four nearest table rows mixed, exactly as the model adds it
+            rows = (c.out * blend[:, :, None].to(c.out.device, c.out.dtype)).sum(1).to(src.dtype)
+            self.tensor(f"{oid}.rows", rows, self.rows() + [self.ax("width")], note="each patch's place row, blended from the four nearest")
+        elif c.out.dim() == src.dim() and list(c.out.shape[1:]) == list(src.shape[1:]):
             # the place rows on their own, since the output is already the sum
             self.tensor(f"{oid}.rows", c.out.expand_as(src), self.rows() + [self.ax("width")], note="each token's row of the place table")
         self.op(oid, "position", [self.cur], [out], [w])

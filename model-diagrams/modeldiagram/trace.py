@@ -87,6 +87,7 @@ class Tracer:
         self.roots = []
         self.handles = []
         self.restore = []
+        self.blend = None          # the last vision place blend's weights, for the pos_embed call that follows
         names = dict(model.named_modules())
         for path, mod in names.items():
             role_of(type(mod).__name__, path.rsplit(".", 1)[-1], top_level=path.count(".") == 0)  # stops on an unknown class
@@ -110,6 +111,9 @@ class Tracer:
         def hook(m, args, kwargs, out):
             c = self.stack.pop()
             c.out = first_tensor(out) if c.kept else None
+            if c.kept and self.blend is not None and c.path.endswith("pos_embed"):
+                c.caught.append(("blend", dict(weights=self.blend)))
+                self.blend = None
         return hook
 
     def _catch(self, what, d):
@@ -127,6 +131,15 @@ class Tracer:
                 return out, w
             mod.eager_attention_forward = eager
             self.restore.append((mod, "eager_attention_forward", orig))
+        if hasattr(mod, "get_vision_interpolation_indices_and_weights"):
+            orig = mod.get_vision_interpolation_indices_and_weights
+
+            def blend(*a, _o=orig, **k):
+                idx, w = _o(*a, **k)
+                self.blend = w     # each patch's place row is the four nearest table rows, mixed by these
+                return idx, w
+            mod.get_vision_interpolation_indices_and_weights = blend
+            self.restore.append((mod, "get_vision_interpolation_indices_and_weights", orig))
         for name in ("torch_chunk_gated_delta_rule", "torch_recurrent_gated_delta_rule"):
             if hasattr(mod, name):
                 orig = getattr(mod, name)

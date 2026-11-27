@@ -86,9 +86,17 @@ def rows_of(axes, rows):
 
 def dump_one(b, rows):
     """The raw dump of one pass: generous, so the trim can change without a rerun."""
+    from .values import head_parts
     d = {}
     top = b.data["output.out"][0, -1].float().topk(8).indices            # the last token's best 8, for the score steps
     lang = rows["language"]
+    att_ops = {o["id"]: o for o in b.ops if o["kind"] == "attention"}
+    heads = {}
+    for oid, o in att_ops.items():
+        r = rows_of(b.tensors[f"{oid}.q"]["axes"], rows) or list(range(min(NR, b.data[f"{oid}.q"].shape[-2])))
+        hp = head_parts(b, o, r, cols=32)
+        heads[oid] = dict(row_ids=r, parts={h: {p: m.half().cpu() for p, m in ps.items()} for h, ps in hp.items()})
+    d["__heads__"] = heads
     for tid, t in b.data.items():
         meta = b.tensors[tid]
         axes, role = meta["axes"], meta["role"]
@@ -190,7 +198,7 @@ def cli_sha(path):
 
 def trim(dump_path, folder, run_id=None):
     """values/<input>.json and weights.json from a dump.pt this job wrote."""
-    from .values import keep, r4, write_weights, sha256, MAX_ROWS
+    from .values import keep, r4, write_weights, sha256, MAX_ROWS, drawn
     dump_path, folder = pathlib.Path(dump_path), pathlib.Path(folder)
     dump = torch.load(dump_path, weights_only=False)
     sha = sha256(dump_path)
@@ -199,10 +207,16 @@ def trim(dump_path, folder, run_id=None):
     weights = None
     (folder / "values").mkdir(parents=True, exist_ok=True)
     for n, rec in dump["inputs"].items():
-        slices, attention, lengths, every, last = {}, {}, {}, {}, {}
+        slices, attention, scores, lengths, every, last = {}, {}, {}, {}, {}, {}
+        heads = {}
+        for op, hd in rec["tensors"].get("__heads__", {}).items():
+            cols = {p: drawn(rec["tensors"][f"{op}.{p}"]["shape"][-1]) for p in ("q", "k", "v")}
+            heads[op] = {h: {p: sig(m[:, :cols[p]]) for p, m in ps.items()} for h, ps in hd["parts"].items()}
         labels = []
         dec = lambda i: rec["vocab_words"].get(str(i), str(i))
         for tid, e in rec["tensors"].items():
+            if tid == "__heads__":
+                continue
             if tid in ("unembed.top", "output.top", "unembed.top.weight"):
                 rows_ = sig(e["slice"]) if tid != "unembed.top.weight" else keep(sig(e["slice"]), e["shape"], "activation")
                 slices[tid] = dict(shape=e["shape"], rows=rows_, **({"row_ids": e["row_ids"]} if "row_ids" in e else {}))
@@ -219,6 +233,8 @@ def trim(dump_path, folder, run_id=None):
                     attention[op] = {str(h): dict(rows=sig(e["slice"][h]), row_ids=e["row_ids"]) for h in range(e["slice"].shape[0])}
                     s = max(1, -(-e["last_row"].shape[-1] // MAX_ROWS))
                     last[op] = {str(h): sig(e["last_row"][h:h + 1, ::s])[0] for h in range(e["last_row"].shape[0])}
+                else:
+                    scores[op] = {str(h): dict(rows=sig(e["slice"][h]), row_ids=e["row_ids"]) for h in range(e["slice"].shape[0])}
                 slices[tid] = dict(shape=e["shape"], rows=sig(e["slice"][0]), row_ids=e["row_ids"], col_ids=e["row_ids"])
                 continue
             slices[tid] = dict(shape=e["shape"], rows=keep(sig(e["slice"]), e["shape"], "activation"), row_ids=e["row_ids"])
@@ -230,7 +246,7 @@ def trim(dump_path, folder, run_id=None):
                  tokens=rec["words"], token_ids=rec["tokens"], prompt_tokens=len(rec["tokens"]),
                  picture=dict(name=n, first_row=rec["image_at"], grid=rec["grid"],
                               letter_tokens=r.get("letter_tokens"), object_tokens=r.get("object_tokens")),
-                 slices=slices, attention=attention, attention_last_row=last,
+                 slices=slices, attention=attention, attention_scores=scores, attention_heads=heads, attention_last_row=last,
                  labels={"unembed.top": labels, "output.top": labels, "unembed.top.weight": labels},
                  row_lengths=lengths, row_lengths_every=every, reply=rec["reply"])
         p = folder / "values" / f"{n}.json"

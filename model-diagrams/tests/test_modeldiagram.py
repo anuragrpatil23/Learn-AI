@@ -124,6 +124,8 @@ def test_values_from_a_small_gpt2_fit_its_spec(tmp_path):
     assert len(v["attention"]["attn"]) == 4
     sc = v["attention_scores"]["attn"]                          # every head's scores, head 0 matching its slice
     assert len(sc) == 4 and sc["0"] == v["slices"]["attn.scores"]["rows"] and sc["3"] != sc["0"]
+    hq = v["attention_heads"]["attn"]                           # each head's own columns of Q, K and V
+    assert len(hq) == 4 and hq["0"]["q"] == v["slices"]["attn.q"]["rows"] and len(hq["1"]["k"][0]) == len(hq["0"]["k"][0])
     assert len(v["slices"]["mlp.pre"]["rows"][0]) == values.drawn(256)      # only the columns the engine draws
     assert values.drawn(768) == 8 and values.drawn(3072) == 16 and values.drawn(10_000_000) == 32
 
@@ -196,4 +198,11 @@ def test_vlm_job_traces_dumps_and_trims_a_small_qwen(tmp_path):
     assert check.check_values(spec, json.dumps(v), "x") == []
     assert check.check_values(spec, (tmp_path / "weights.json").read_text(), "w", weights_file=True) == []
     assert len(v["attention"]["att_attn"]) == 4 and len(v["attention"]["vis_attn"]) == 4      # every head
+    assert len(v["attention_scores"]["vis_attn"]) == 4 and len(v["attention_heads"]["att_attn"]) == 4
+    # grouped attention: query heads 0 and 1 share key head 0
+    assert v["attention_heads"]["att_attn"]["0"]["k"] == v["attention_heads"]["att_attn"]["1"]["k"] != v["attention_heads"]["att_attn"]["2"]["k"]
+    for tid in ("vis_attn.q", "vis_attn.k", "att_attn.q", "att_attn.k", "att_attn.gate", "mem_memory.k", "vis_position.rows"):
+        assert tid in v["slices"], tid
+    # the place rows are what the model added: position.out = patchify.out + position.rows
+    assert torch.allclose(b.data["vis_position.out"], b.data["vis_patchify.out"] + b.data["vis_position.rows"], atol=1e-5)
     assert "att_attn.scores" in v["slices"] and "vis_attn.k.weight" in json.loads((tmp_path / "weights.json").read_text())["slices"]

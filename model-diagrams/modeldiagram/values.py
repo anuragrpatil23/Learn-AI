@@ -62,6 +62,25 @@ def corner(t, axes):
     return [[r4(v) for v in row[:N]] for row in t[:N]]
 
 
+def head_parts(b, o, rows, cols=None):
+    """Each head's own columns of an attention op's queries, keys and values, on the given rows:
+    {head: {"q": [rows x cols], "k": ..., "v": ...}}. A key and value head shared by several query heads
+    (grouped attention) is given to each of them. cols defaults to the columns the engine draws for the
+    full width, so a head's grid has as many columns as the op's own slice."""
+    H = o["heads"]
+    G = H // o.get("kv_heads", H)
+    out = {str(h): {} for h in range(H)}
+    for part in ("q", "k", "v"):
+        t = b.data[f"{o['id']}.{part}"].detach().float()
+        t = t[0] if t.dim() == 3 else t
+        n = H if part == "q" else H // G
+        c = cols or drawn(t.shape[-1])
+        t = t.reshape(t.shape[0], n, -1)[rows, :, :c]
+        for h in range(H):
+            out[str(h)][part] = t[:, h if part == "q" else h // G]
+    return out
+
+
 def sig3(x):
     return float(f"{float(x):.3g}")
 
@@ -165,12 +184,15 @@ def trim(b, tok, full, prompt_len, run_id, sha):
             x = x[0] if x.dim() == 3 else x
             stats[o["in"][0]] = dict(mean=[r4(v) for v in x.mean(-1)[:N]], sd=[r4(v) for v in x.std(-1, unbiased=False)[:N]],
                                      rms=[r4(v) for v in x.pow(2).mean(-1).sqrt()[:N]])
-    attention, attention_scores = {}, {}       # every head's weights and its scores before the softmax
+    attention, attention_scores, attention_heads = {}, {}, {}       # every head's weights and its scores before the softmax
     for o in b.ops:
         if o["kind"] == "attention":
             for out, part in ((attention, "weights"), (attention_scores, "scores")):
                 w = b.data[f"{o['id']}.{part}"][0]
                 out[o["id"]] = {str(h): [[r4(v) for v in row[:N]] for row in w[h, :N]] for h in range(w.shape[0])}
+            T = b.data[f"{o['id']}.q"].shape[-2]
+            attention_heads[o["id"]] = {h: {p: [[r4(v) for v in row] for row in m.tolist()] for p, m in parts.items()}
+                                        for h, parts in head_parts(b, o, list(range(min(N, T)))).items()}
     labels = [word(tok, i) for i in top.tolist()]
     # the same three slices for every pass of the reply: pass k sees the first prompt_len + k tokens,
     # and its columns are the top 8 tokens of its own last row
@@ -185,6 +207,6 @@ def trim(b, tok, full, prompt_len, run_id, sha):
                        "unembed.top.weight": [[r4(v) for v in W[i, :cw]] for i in tk],
                        "labels": [word(tok, i) for i in tk.tolist()]})
     return dict(run_id=run_id, sha256=sha, tokens=[word(tok, i) for i in ids], token_ids=ids, prompt_tokens=prompt_len,
-                slices=slices, attention=attention, attention_scores=attention_scores, row_lengths=lengths, row_stats=stats,
+                slices=slices, attention=attention, attention_scores=attention_scores, attention_heads=attention_heads, row_lengths=lengths, row_stats=stats,
                 labels={"unembed.top": labels, "output.top": labels, "unembed.top.weight": labels},
                 top_by_pass=passes, reply=tok.decode(ids[prompt_len:]))

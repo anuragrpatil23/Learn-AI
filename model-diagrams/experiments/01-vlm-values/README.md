@@ -28,16 +28,18 @@ This is the first in this folder. Against the old dump scripts, everything comes
 
 ## Command
 
-Not submitted: the run hold (2026-11-26). When the hold is lifted, run from `Learn-AI/model-diagrams` on the login node, with the venv from `jobs/requirements.txt` active and `.model.env` copied from `model.env.example`:
+Anurag lifted the hold for this one run (2026-11-26). It goes into the cluster queue with `labbook request` on datapilot, never straight to LSF with `labbook submit`, `jobs/submit.sh` or `bsub` (the standing rule in sfresearch-workflow-conventions.md). The queue project is `model-diagrams`. On work, the checkout of `Learn-AI/model-diagrams` must have no local changes, with the venv from `jobs/requirements.txt` built and `.model.env` copied from `model.env.example`:
 
 ```
 KIND=full CONDITION="model=untrained" LABBOOK_WHY="the model drawing's Qwen3.5-9B values: all heads, scores, every weight" \
 LABBOOK_SHOWN="the four counting pictures (dots and squares, hint drawn and empty) with the recorded letter-only prompt" \
 LABBOOK_REPLY="the answer letter after Answer:" \
-    labbook submit 01-vlm-values modeldiagram.vlm_job INPUTS=experiments/01-vlm-values/inputs/counting.json NEW_TOKENS=12 -W 60
+/data/MountSinaiGit/cc-minerva/labbook-venv/bin/labbook request --project model-diagrams --hours 1 \
+    01-vlm-values modeldiagram.vlm_job INPUTS=experiments/01-vlm-values/inputs/counting.json NEW_TOKENS=12 \
+    -q gpuexpress -W 60
 ```
 
-Try `--dry-run` first. After the run syncs back, run `modeldiagram trim-vlm-dump runs/<run>/dump.pt --out <vault>/model-diagrams/vlm/qwen3.5-9b`, then `modeldiagram check`. This replaces the files from the old dumps.
+The four pictures match exp-cd960d (2026-11-26_0558-untrained-letter) inputs.json by pixel digest: the dots are shape-0052 and the squares shape-0001. After the run syncs back, run `modeldiagram trim-vlm-dump runs/<run>/dump.pt --out <vault>/model-diagrams/vlm/qwen3.5-9b`, then `modeldiagram check`. This replaces the files from the old dumps.
 
 ## Runs
 

@@ -4,3 +4,5 @@ __pycache__/
 *.egg-info/
 .model.env
 run-inputs/
+# a run's raw dump is over 50 MB: it stays on Minerva, listed in run.json big_files with its sha256
+experiments/*/runs/*/dump.pt

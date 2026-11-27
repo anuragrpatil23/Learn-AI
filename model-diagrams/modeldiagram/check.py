@@ -139,12 +139,16 @@ def check_values(spec, text, name, weights_file=False):
         if "row_ids" in s and len(s["row_ids"]) != len(rows):
             p.append(f"{name} slices.{tid}: {len(s['row_ids'])} row ids for {len(rows)} rows")
     att = {o["id"] for o in spec["ops"] if o["kind"] == "attention"}
-    for oid, heads in (v.get("attention") or {}).items():
-        if oid not in att:
-            p.append(f"{name} attention.{oid}: not an attention op")
-        for h, m in heads.items():
-            if isinstance(m, dict) and len(m.get("row_ids", [])) != len(m.get("rows", [])):
-                p.append(f"{name} attention.{oid}.{h}: {len(m.get('row_ids', []))} row ids for {len(m.get('rows', []))} rows")
+    for key in ("attention", "attention_scores"):          # weights and scores per head, laid out alike
+        for oid, heads in (v.get(key) or {}).items():
+            if oid not in att:
+                p.append(f"{name} {key}.{oid}: not an attention op")
+            for h, m in heads.items():
+                if isinstance(m, dict) and len(m.get("row_ids", [])) != len(m.get("rows", [])):
+                    p.append(f"{name} {key}.{oid}.{h}: {len(m.get('row_ids', []))} row ids for {len(m.get('rows', []))} rows")
+                rows = m.get("rows", []) if isinstance(m, dict) else m
+                if len(rows) > 32 or any(len(r) > 32 for r in rows):
+                    p.append(f"{name} {key}.{oid}.{h}: more than 32 rows or columns")
     for tid, r in (v.get("row_lengths") or {}).items():
         if tid not in T:
             p.append(f"{name} row_lengths.{tid}: not a tensor of the spec")

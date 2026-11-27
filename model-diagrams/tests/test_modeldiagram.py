@@ -122,6 +122,8 @@ def test_values_from_a_small_gpt2_fit_its_spec(tmp_path):
     assert v["prompt_tokens"] == 11 and len(v["top_by_pass"]) == 4
     assert v["slices"]["attn.scores"]["rows"][0][1] == -1e9     # masked: a later key
     assert len(v["attention"]["attn"]) == 4
+    sc = v["attention_scores"]["attn"]                          # every head's scores, head 0 matching its slice
+    assert len(sc) == 4 and sc["0"] == v["slices"]["attn.scores"]["rows"] and sc["3"] != sc["0"]
     assert len(v["slices"]["mlp.pre"]["rows"][0]) == values.drawn(256)      # only the columns the engine draws
     assert values.drawn(768) == 8 and values.drawn(3072) == 16 and values.drawn(10_000_000) == 32
 

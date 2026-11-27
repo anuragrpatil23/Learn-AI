@@ -165,11 +165,12 @@ def trim(b, tok, full, prompt_len, run_id, sha):
             x = x[0] if x.dim() == 3 else x
             stats[o["in"][0]] = dict(mean=[r4(v) for v in x.mean(-1)[:N]], sd=[r4(v) for v in x.std(-1, unbiased=False)[:N]],
                                      rms=[r4(v) for v in x.pow(2).mean(-1).sqrt()[:N]])
-    attention = {}
+    attention, attention_scores = {}, {}       # every head's weights and its scores before the softmax
     for o in b.ops:
         if o["kind"] == "attention":
-            w = b.data[f"{o['id']}.weights"][0]
-            attention[o["id"]] = {str(h): [[r4(v) for v in row[:N]] for row in w[h, :N]] for h in range(w.shape[0])}
+            for out, part in ((attention, "weights"), (attention_scores, "scores")):
+                w = b.data[f"{o['id']}.{part}"][0]
+                out[o["id"]] = {str(h): [[r4(v) for v in row[:N]] for row in w[h, :N]] for h in range(w.shape[0])}
     labels = [word(tok, i) for i in top.tolist()]
     # the same three slices for every pass of the reply: pass k sees the first prompt_len + k tokens,
     # and its columns are the top 8 tokens of its own last row
@@ -184,6 +185,6 @@ def trim(b, tok, full, prompt_len, run_id, sha):
                        "unembed.top.weight": [[r4(v) for v in W[i, :cw]] for i in tk],
                        "labels": [word(tok, i) for i in tk.tolist()]})
     return dict(run_id=run_id, sha256=sha, tokens=[word(tok, i) for i in ids], token_ids=ids, prompt_tokens=prompt_len,
-                slices=slices, attention=attention, row_lengths=lengths, row_stats=stats,
+                slices=slices, attention=attention, attention_scores=attention_scores, row_lengths=lengths, row_stats=stats,
                 labels={"unembed.top": labels, "output.top": labels, "unembed.top.weight": labels},
                 top_by_pass=passes, reply=tok.decode(ids[prompt_len:]))

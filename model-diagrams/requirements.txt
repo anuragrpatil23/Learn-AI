@@ -10,4 +10,4 @@ transformers==5.24.1
 pyyaml==6.0.4
 pillow==13.0.0
 safetensors==0.8.0
-labbook @ git+https://github.com/anuragrpatil23/labbook.git@a1c88ef94fbcde733f9df9f289844998ba269ddb
+labbook @ git+https://github.com/anuragrpatil23/labbook.git@4a57244eed358fe530f7acf0e047274d8d4e3671

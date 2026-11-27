@@ -1,0 +1,83 @@
+#!/bin/bash
+# The job script for every project, from labbook (it was introspection's jobs/run.lsf). labbook
+# submit fills in the fields in double braces from the project's project.env, keeps the filled copy in the
+# run folder as job.lsf, and gives it to bsub; options given to labbook submit override these.
+#BSUB -J lb-model-diagrams-run-112c39
+#BSUB -P acc_rg_HPIMS
+#BSUB -q gpuexpress
+#BSUB -R "select[(a10080g||h10080g||h100nvl) && hname!=lg05g29] span[hosts=1] rusage[mem=64000]"
+#BSUB -n 4
+#BSUB -gpu num=1
+#BSUB -W 60
+#BSUB -o /dev/null
+
+if [ -z "$LABBOOK_RUN_DIR" ] || [ -z "$LABBOOK_REPO" ]; then
+    echo "submit with labbook submit, so the logs land in the run folder" >&2
+    exit 1
+fi
+
+module load python/3.12.5
+unset PYTHONPATH
+source /sc/arion/scratch/patila06/venvs/model-diagrams-venv/bin/activate
+# the code given to this job (the checkout, or its snapshot) comes first for every Python process
+# it starts, ahead of an editable install that points elsewhere; Run checks where it came from
+export PYTHONPATH="$LABBOOK_REPO"
+# The model (and dataset) come from their shared copies, which labbook submit checked, read
+# from MODEL_PATH and DATASET_PATH. The job never writes there and never deletes them. HF_HOME is
+# a folder of the job's own, deleted at the end, so nothing Hugging Face writes lands in a copy
+# or in the home folder; with everything offline, anything that tried to download would fail.
+case "$MODEL_PATH" in
+    /sc/arion/scratch/patila06/models/?*) ;;
+    *) echo "MODEL_PATH is not a shared model copy: '$MODEL_PATH'" >&2; exit 1 ;;
+esac
+[ -d "$MODEL_PATH" ] || { echo "the shared model copy is missing: '$MODEL_PATH'" >&2; exit 1; }
+if [ -n "$DATASET_PATH" ] && [ ! -d "$DATASET_PATH" ]; then
+    echo "the shared dataset copy is missing: '$DATASET_PATH'" >&2
+    exit 1
+fi
+job_home=/sc/arion/scratch/patila06/hf-home/$LSB_JOBID
+mkdir -p "$job_home"
+export HF_HOME="$job_home"
+export HF_HUB_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+
+# The run's status in its run.json (labbook status): running once the job starts; done or failed
+# when it ends, with the reason. A status that cannot be written never stops the job.
+mark() {
+    labbook status "$LABBOOK_RUN_DIR" "$@" --job "$LSB_JOBID" \
+        || echo "could not set the status in $LABBOOK_RUN_DIR/run.json" >&2
+}
+signalled=""
+child=""
+
+cleanup() {
+    code=$?
+    trap - EXIT TERM USR2 INT
+    [ -n "$child" ] && kill "$child" 2>/dev/null && wait "$child" 2>/dev/null
+    # only the job's own HF_HOME; the shared copies are never deleted by a job
+    case "$job_home" in /sc/arion/scratch/patila06/hf-home/?*) rm -rf "$job_home" ;; esac
+    if [ -n "$signalled" ]; then
+        mark failed --reason "stopped by the scheduler on $(hostname) ($signalled: time limit or bkill)"
+    elif [ "$code" -eq 0 ]; then
+        mark done
+    else
+        mark failed --reason "exited with status $code on $(hostname)"
+    fi
+}
+trap cleanup EXIT
+trap 'echo "job got a signal to stop"; signalled=SIGTERM; exit 143' TERM
+trap 'echo "job got a signal to stop"; signalled=SIGUSR2; exit 143' USR2
+trap 'echo "job got a signal to stop"; signalled=SIGINT; exit 143' INT
+
+# LABBOOK_REPO is the code: the checkout the job was submitted from, or its snapshot at the
+# commit (SNAPSHOT=1), when LABBOOK_RUN_DIR is the run folder's absolute path in the checkout
+cd "$LABBOOK_REPO" || exit 1
+mark running
+# in the background, so a signal reaches the trap at once instead of after python ends
+python -m "$MODULE" &
+child=$!
+wait "$child"
+status=$?
+child=""
+exit $status

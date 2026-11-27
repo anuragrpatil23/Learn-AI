@@ -1,0 +1,26 @@
+[
+ {
+  "image": "inputs/dots-empty-cb3f0d77.png",
+  "id": "dots-empty",
+  "sha256": "cb3f0d7791382a175842c21f8b733cce32e8d40ec968568a73a7b5ce130f4c61",
+  "original": "dots-empty.png"
+ },
+ {
+  "image": "inputs/dots-hint-f004a735.png",
+  "id": "dots-hint",
+  "sha256": "f004a735b806780e803809164f9c525f78d02f56097ed516ecf924e0b6e2b21a",
+  "original": "dots-hint.png"
+ },
+ {
+  "image": "inputs/squares-empty-71cc0070.png",
+  "id": "squares-empty",
+  "sha256": "71cc0070fd9142e0b72267b201ef1f108925f40338ace3250ec07d6897ef1687",
+  "original": "squares-empty.png"
+ },
+ {
+  "image": "inputs/squares-hint-3664507a.png",
+  "id": "squares-hint",
+  "sha256": "3664507a911eea170125ba7b80dc047e3a304573a6fc020655f1c1bb8b1e199a",
+  "original": "squares-hint.png"
+ }
+]

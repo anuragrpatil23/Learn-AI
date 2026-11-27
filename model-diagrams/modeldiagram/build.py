@@ -418,7 +418,7 @@ class Builder:
         causal = bool(getattr(mod, "is_causal", False))
         if causal and not scores.is_meta:
             T = scores.shape[-1]
-            scores = scores.masked_fill(torch.triu(torch.ones(T, T, dtype=torch.bool), 1), float("-inf"))
+            scores = scores.masked_fill(torch.triu(torch.ones(T, T, dtype=torch.bool, device=scores.device), 1), float("-inf"))
         sq = (["batch"] if self.tower != "vision" else [1]) + [self.ax("heads"), R[-1], R[-1]]
         self.tensor(f"{oid}.scores", scores, sq, note="each query against each key" + (", the later keys masked" if causal else ""))
         self.tensor(f"{oid}.weights", wts, sq, note="each row of scores turned into weights that add up to one")

@@ -26,7 +26,7 @@ class Call:
     out: object = None       # the first tensor coming out
     kids: list = field(default_factory=list)
     caught: list = field(default_factory=list)   # (what, dict) from wrapped functions
-    roots: bool = False
+    kept: bool = True
 
     @property
     def attr(self):
@@ -61,9 +61,28 @@ class MetaCoerce(TorchDispatchMode):
         return func(*args, **kwargs)
 
 
+def drawn_only(model):
+    """On a real run, keep tensors only where the spec draws: the first block of each layout in a run of
+    blocks. The rest keep their call (so the tree has the same shape) and their own input and output, but
+    nothing inside them, so a 32-block model doesn't hold every layer's activations at once."""
+    from .kinds import role_of as role
+    drop = []
+    for path, m in model.named_modules():
+        kids = list(m.named_children())
+        if type(m).__name__ == "ModuleList" and kids and all(role(type(c).__name__) == "block" for _, c in kids):
+            seen = set()
+            for name, c in kids:
+                sig = tuple(type(x).__name__ for x in c.children())
+                if sig in seen:
+                    drop.append(f"{path}.{name}." if path else f"{name}.")
+                seen.add(sig)
+    return lambda p: not any(p.startswith(d) for d in drop)
+
+
 class Tracer:
-    def __init__(self, model):
+    def __init__(self, model, keep=None):
         self.model = model
+        self.keep = keep or (lambda p: True)
         self.stack = []
         self.roots = []
         self.handles = []
@@ -77,8 +96,12 @@ class Tracer:
             self._wrap(sys.modules[modname])
 
     def _pre(self, path, mod):
+        kept = self.keep(path)
+
         def hook(m, args, kwargs):
-            c = Call(path, type(m).__name__, m, inp=first_tensor(args) if first_tensor(args) is not None else first_tensor(kwargs))
+            inp = (first_tensor(args) if first_tensor(args) is not None else first_tensor(kwargs)) if kept else None
+            c = Call(path, type(m).__name__, m, inp=inp)
+            c.kept = kept
             (self.stack[-1].kids if self.stack else self.roots).append(c)
             self.stack.append(c)
         return hook
@@ -86,11 +109,11 @@ class Tracer:
     def _post(self):
         def hook(m, args, kwargs, out):
             c = self.stack.pop()
-            c.out = first_tensor(out)
+            c.out = first_tensor(out) if c.kept else None
         return hook
 
     def _catch(self, what, d):
-        if self.stack:
+        if self.stack and self.stack[-1].kept:
             self.stack[-1].caught.append((what, d))
 
     def _wrap(self, mod):
@@ -147,6 +170,25 @@ def run_llm(model, ids):
     finally:
         tr.close()
     return tr.roots
+
+
+def run_vlm(model, inputs):
+    """One real pass of a vision-language model on the processor's output (input_ids, pixel_values,
+    image_grid_thw, ...), keeping tensors only where the spec draws. Returns the four calls build_vlm takes:
+    the vision tower, the token table, the language model and the unembedding."""
+    tr = Tracer(model, keep=drawn_only(model))
+    try:
+        with torch.no_grad():
+            model(**inputs, use_cache=False)
+    finally:
+        tr.close()
+    top = tr.roots[0]
+    inner = next(k for k in top.kids if k.cls.endswith("Model"))
+    vis = next(k for k in inner.kids if k.cls.endswith("VisionModel"))
+    emb = next(k for k in inner.kids if k.cls == "Embedding")
+    lang = next(k for k in inner.kids if k.cls.endswith("TextModel"))
+    head = next(k for k in top.kids if k.attr == "lm_head")
+    return [vis, emb, lang, head]
 
 
 def run_vlm_meta(model, cfg, n_tokens, grid_thw, image_at):

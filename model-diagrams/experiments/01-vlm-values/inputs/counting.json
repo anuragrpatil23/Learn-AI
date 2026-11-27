@@ -1,0 +1,26 @@
+{
+ "box_bottom": 184,
+ "note": "exp-cd960d's shape-0052 (13 dots) and shape-0001 (15 squares), each with the hint box drawn and empty; the prompts are the run's recorded ones in Li's form",
+ "inputs": [
+  {
+   "name": "dots-hint",
+   "image": "dots-hint.png",
+   "prompt": "prompt-dots.txt"
+  },
+  {
+   "name": "dots-empty",
+   "image": "dots-empty.png",
+   "prompt": "prompt-dots.txt"
+  },
+  {
+   "name": "squares-hint",
+   "image": "squares-hint.png",
+   "prompt": "prompt-squares.txt"
+  },
+  {
+   "name": "squares-empty",
+   "image": "squares-empty.png",
+   "prompt": "prompt-squares.txt"
+  }
+ ]
+}

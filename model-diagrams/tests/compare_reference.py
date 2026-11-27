@@ -59,7 +59,7 @@ def main(ref_path, folder):
         print(f"{name:6s} top 8 words at the question's last token agree: {top_ok}; chances max diff {m:.1e}")
         worst = max(worst, m)
         assert top_ok
-    ours = json.loads((pathlib.Path(folder) / "values" / "sky.json").read_text())
+    ours = json.loads((pathlib.Path(folder) / "weights.json").read_text())
     for rp, tid in W_TO_OURS.items():
         m, r, c = diff(get(ref["weights"], rp), ours["slices"][tid]["rows"])
         worst = max(worst, m)

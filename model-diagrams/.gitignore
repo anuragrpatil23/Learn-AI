@@ -1,4 +1,6 @@
-runs/
+/runs/
 .venv/
 __pycache__/
 *.egg-info/
+.model.env
+run-inputs/

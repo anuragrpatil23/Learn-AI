@@ -549,10 +549,11 @@ def build_vlm(roots, hf_id, ids, at):
     b.tensor("ids", ids, ["batch", "tokens"], note="the tokens, each a number; the picture's rows are placeholders")
     b.op("tokens_in", "input", [], ["ids"], note="the text with one placeholder token per picture row")
     b.walk([emb])
-    seq = lang.kids[0].inp if lang.kids else None   # the rows the language model gets: text and picture joined
-    joined = next((k for k in lang.kids if role_of(k.cls) == "container"), None)
-    first_block = joined.kids[0] if joined is not None and joined.kids else None
-    data = first_block.inp if first_block is not None else lang.inp
+    # the rows the language model gets, text and picture joined: what its first block reads
+    first_block = next((k for k in lang.kids if role_of(k.cls) == "block"), None)
+    if first_block is None or first_block.inp is None:
+        raise SpecError("The language model's first block was not caught, so the joined rows are unknown.")
+    data = first_block.inp
     j = b.tensor("join.out", data, ["batch", "tokens", "width"], note=f"the picture's {b.axes['v_merged']} rows put in place of its placeholders, from token {at['image_at']}")
     b.op("join", "join", [b.cur, vis_tokens], [j], note="the picture's rows go in among the words")
     b.facts["join"] = dict(at=at["image_at"], rows=b.axes["v_merged"])

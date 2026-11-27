@@ -2,7 +2,7 @@
 name = "modeldiagram"
 version = "0.1.0"
 description = "Writes a model's structure and real values in the vault's model-diagram format"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = ["torch>=2.5", "transformers>=5.20", "pyyaml", "pillow", "safetensors"]
 
 [project.scripts]

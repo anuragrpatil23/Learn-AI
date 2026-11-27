@@ -108,12 +108,30 @@ def run_llm_values(hf_id, input_path, folder, new_tokens, runs_dir):
     torch.save({k: v.cpu() for k, v in b.data.items()}, run / "dump.pt")
     (run / "run.json").write_text(json.dumps(dict(model=hf_id, input=text, new_tokens=new_tokens, tokens=full[0].tolist()), indent=1))
     out = trim(b, tok, full, ids.shape[1], run_id, sha256(run / "dump.pt"))
+    write_weights(folder, split_weights(out, b))
     (folder / "values").mkdir(parents=True, exist_ok=True)
     path = folder / "values" / f"{name}.json"
     path.write_text(json.dumps(out, separators=(",", ":"), ensure_ascii=False))
     print(f"{name}: {ids.shape[1]} tokens in, wrote {out['reply']!r}")
     print(f"raw dump {run / 'dump.pt'} (sha256 {out['sha256'][:12]}...), wrote {path} ({path.stat().st_size / 1024:.0f} KB)")
     return 0
+
+
+PER_INPUT_WEIGHTS = {"unembed.top.weight"}   # chosen by the input's own top tokens, so it stays with the input
+
+
+def split_weights(values, b):
+    """Move the weight slices out of a values file: they are the same for every input, so the model folder
+    holds them once, in weights.json. Returns that file's content."""
+    w = {tid: values["slices"].pop(tid) for tid in list(values["slices"])
+         if b.tensors.get(tid, {}).get("role") == "weight" and tid not in PER_INPUT_WEIGHTS}
+    return dict(run_id=values["run_id"], sha256=values["sha256"], slices=w)
+
+
+def write_weights(folder, weights):
+    path = folder / "weights.json"
+    path.write_text(json.dumps(weights, separators=(",", ":"), ensure_ascii=False))
+    return path
 
 
 def word(tok, i):

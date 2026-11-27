@@ -115,7 +115,10 @@ def test_values_from_a_small_gpt2_fit_its_spec(tmp_path):
     assert torch.allclose(b.data["output.out"].sum(-1), torch.ones(1, full.shape[1]), atol=1e-5)
     assert torch.allclose(b.data["attn.weights"].sum(-1), torch.ones(1, 4, full.shape[1]), atol=1e-5)
     v = values.trim(b, tok, full, ids.shape[1], "test-run", "0" * 64)
+    w = values.split_weights(v, b)
     assert check.check_values(spec, json.dumps(v), "test") == []
+    assert check.check_values(spec, json.dumps(w), "weights", weights_file=True) == []
+    assert "attn.q.weight" in w["slices"] and "attn.q.weight" not in v["slices"] and "unembed.top.weight" in v["slices"]
     assert v["prompt_tokens"] == 11 and len(v["top_by_pass"]) == 4
     assert v["slices"]["attn.scores"]["rows"][0][1] == -1e9     # masked: a later key
     assert len(v["attention"]["attn"]) == 4
@@ -141,3 +144,54 @@ def test_qwen35_spec_connects():
     assert spec["axes"]["patches"] == 2880 and spec["axes"]["v_merged"] == 720 and spec["axes"]["mem_heads"] == 32
     assert ops["vis_join"]["kind"] == "join" and ops["join"]["in"] == ["embed.out", "vis_linear2.out"]
     assert spec["streams"]["vision"][0] == "vis_position.out"
+
+
+def small_qwen():
+    """Qwen3.5 with its real layout (vision blocks, three memory blocks then one attention block, the
+    hand-over) at a tiny size, random weights, on the CPU."""
+    from transformers import AutoConfig, AutoModelForImageTextToText
+    cfg = AutoConfig.from_pretrained("Qwen/Qwen3.5-9B")
+    v, t = cfg.vision_config, cfg.text_config
+    v.depth, v.hidden_size, v.num_heads, v.intermediate_size, v.out_hidden_size = 2, 64, 4, 96, 64
+    v.num_position_embeddings = 64
+    t.num_hidden_layers, t.layer_types = 8, ["linear_attention"] * 3 + ["full_attention"] + ["linear_attention"] * 3 + ["full_attention"]
+    t.hidden_size, t.intermediate_size, t.num_attention_heads, t.num_key_value_heads, t.head_dim = 64, 96, 4, 2, 16
+    t.linear_num_key_heads, t.linear_num_value_heads, t.linear_key_head_dim, t.linear_value_head_dim = 2, 4, 8, 8
+    torch.manual_seed(0)
+    model = AutoModelForImageTextToText.from_config(cfg, attn_implementation="eager").float().eval()
+    grid = [1, 8, 8]
+    n_img = 64 // 4
+    ids = torch.tensor([[11, 12, 13, 14, cfg.vision_start_token_id] + [cfg.image_token_id] * n_img + [cfg.vision_end_token_id, 15, 16, 17]])
+    inputs = dict(input_ids=ids, attention_mask=torch.ones_like(ids), pixel_values=torch.randn(64, 1536),
+                  image_grid_thw=torch.tensor([grid]), mm_token_type_ids=(ids == cfg.image_token_id).long())
+    return cfg, model, inputs
+
+
+def test_vlm_job_traces_dumps_and_trims_a_small_qwen(tmp_path):
+    from modeldiagram import vlm_job
+    cfg, model, inputs = small_qwen()
+    roots = trace.run_vlm(model, inputs)
+    ids = inputs["input_ids"]
+    b = build.build_vlm(roots, "small", ids, dict(image_at=5))
+    spec = b.spec(dict(model="small"))
+    assert check.check_spec(spec) == []
+    blocks = {x["id"]: x["repeat"] for x in spec["blocks"]}
+    assert blocks == {"vis": 2, "mem": 6, "att": 2}
+    # only the drawn blocks kept their insides: block 2 (memory, not drawn) has no tensors below it
+    lang = roots[2]
+    layers = [k for k in lang.kids if k.cls == "Qwen3_5DecoderLayer"]
+    assert layers[0].kids[0].inp is not None and layers[1].kids[0].inp is None and layers[1].out is not None
+    # the join really holds the picture's rows where the placeholders were
+    j = b.data["join.out"][0]
+    assert torch.allclose(j[5:5 + 16], b.data["vis_linear2.out"], atol=1e-5)
+    rows = vlm_job.chosen_rows(None, None, ["x"], cfg, "first", 184)["x"]
+    rows["language"] = list(range(ids.shape[1]))
+    rec = dict(tokens=ids[0].tolist(), words=[str(i) for i in ids[0].tolist()], reply=" A", image_at=5, grid=[1, 8, 8], rows=rows,
+               vocab_words={}, tensors=vlm_job.dump_one(b, rows))
+    torch.save(dict(rows_rule="first", inputs={"x-hint": rec}), tmp_path / "dump.pt")
+    vlm_job.trim(tmp_path / "dump.pt", tmp_path, run_id="test")
+    v = json.loads((tmp_path / "values" / "x-hint.json").read_text())
+    assert check.check_values(spec, json.dumps(v), "x") == []
+    assert check.check_values(spec, (tmp_path / "weights.json").read_text(), "w", weights_file=True) == []
+    assert len(v["attention"]["att_attn"]) == 4 and len(v["attention"]["vis_attn"]) == 4      # every head
+    assert "att_attn.scores" in v["slices"] and "vis_attn.k.weight" in json.loads((tmp_path / "weights.json").read_text())["slices"]

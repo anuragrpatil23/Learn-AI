@@ -21,6 +21,9 @@ modeldiagram spec Qwen/Qwen3.5-9B --out <vault>/model-diagrams/vlm/qwen3.5-9b --
 # values for a language model, run on the CPU: the raw dump goes to runs/<run id>/ (git-ignored), the trim to values/
 modeldiagram values gpt2 --input <model folder>/inputs/sky.txt --out <model folder>
 
+# values for a vision-language model: the labbook job on Minerva (experiments/01-vlm-values/README.md), then the trim
+modeldiagram trim-vlm-dump runs/<run>/dump.pt --out <model folder>
+
 # values for Qwen3.5-9B, trimmed from the vlm-in-one-drawing dumps (Minerva jobs 283648526 and 283648536)
 modeldiagram trim-qwen-dump --acts <.html-parts>/vlm-in-one-drawing/vlm-activations.json \
     --weights <.html-parts>/vlm-in-one-drawing/weights.json --acts-job 283648526 --weights-job 283648536 --out <model folder>
@@ -41,8 +44,14 @@ modeldiagram check <model folder> ...
 
 Run `spec` on it. If it stops on a class, add the class to `kinds.py`. If the class is a new kind of attention, memory or MLP, also give it a reader in `build.py`. Then run `check`, and write the model's page beside its spec.
 
-A vision-language model's values need a GPU, so they are a labbook job on Minerva. `values` runs language models only, on the CPU.
+A model folder holds `weights.json` once (the weights are the same for every input) and `values/<input>.json` per input, with activations only.
+
+## Vision-language models on Minerva
+
+A VLM's values need a GPU, so they come from a labbook job. This folder is its own labbook project: `project.env`, `model.env.example` (copy to `.model.env`), `jobs/requirements.txt` for the job's venv, and `experiments/01-vlm-values/`, whose README has the submit line. The job is `modeldiagram.vlm_job`. It runs the same trace as `spec` on the real model, keeping tensors only for the blocks the spec draws, and writes a generous `dump.pt` (64 columns, all heads, the scores before the softmax). It then trims that into a model folder inside the run folder. `trim-vlm-dump` does the same trim later, on the laptop. A test runs the whole path on a tiny Qwen3.5 with random weights.
+
+labbook refuses to submit from a checkout with uncommitted changes anywhere in Learn-AI, since it checks with git status.
 
 ## Tests
 
-`pytest tests` runs in a few seconds. The Qwen test builds the 9B model on the meta device. `tests/compare_reference.py` checks GPT-2's values against the hand-built gpt-with-sparse-network page's data.
+`pytest tests` runs in a few seconds. One Qwen test builds the 9B model on the meta device. Another runs the Minerva job's trace, dump and trim on a tiny random Qwen3.5. `tests/compare_reference.py` checks GPT-2's values against the hand-built gpt-with-sparse-network page's data.

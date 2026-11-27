@@ -100,6 +100,12 @@ def trim(a):
     missing = sorted(t for t in WEIGHT.values() if t not in weight_slices)
     if missing:
         print("weights not in the dump:", missing)
+    for sl in weight_slices.values():
+        sl["rows"] = keep(sig(sl["rows"]), sl["shape"], "weight")
+    from .values import write_weights
+    wp = write_weights(out, dict(run_id="minerva-283648536", sha256=sha_w, source="vlm-in-one-drawing's weights.json, from dump_weights.py",
+                                 slices=weight_slices))
+    print(f"wrote {wp.name}: {wp.stat().st_size / 1024:.0f} KB")
     (out / "values").mkdir(exist_ok=True)
     for pic, case in acts["cases"].items():
         ids = case["tokens"]
@@ -107,7 +113,7 @@ def trim(a):
         words = [tok.decode([i]).replace("\n", "\\n") for i in ids]
         for box in ("hint", "empty"):
             d = case[box]
-            slices, lengths, every = dict(weight_slices), {}, {}
+            slices, lengths, every = {}, {}, {}
             for label, tid in ACT.items():
                 if label not in d:
                     print(f"{pic}-{box}: {label} not in the dump")
@@ -135,8 +141,7 @@ def trim(a):
                 lr = d["l.b4.att"]["last_row_all_heads"]
                 last_row["att_attn"] = {str(h): stride(r)[0] for h, r in enumerate(lr)}
             v = dict(run_id="minerva-283648526", sha256=sha_a,
-                     weights_run_id="minerva-283648536", weights_sha256=sha_w,
-                     source="vlm-in-one-drawing's dumps (vlm-activations.json and weights.json), trimmed by modeldiagram trim-qwen-dump",
+                     source="vlm-in-one-drawing's vlm-activations.json, trimmed by modeldiagram trim-qwen-dump",
                      tokens=words, token_ids=ids, prompt_tokens=n,
                      picture=dict(name=f"{pic}-{box}", first_row=case["image_positions"][0], last_row=case["image_positions"][1],
                                   grid=case["grid"], letter_tokens=case["letter_tokens"], object_tokens=case["object_tokens"]),

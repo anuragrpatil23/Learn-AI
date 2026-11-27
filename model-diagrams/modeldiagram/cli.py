@@ -3,6 +3,7 @@
   modeldiagram spec   <hf id> --out <model folder> [--batch B --tokens T] [--grid 1,60,48 --image-at 61]
   modeldiagram values <hf id> --input <text file> --out <model folder>       (language models, run on the CPU)
   modeldiagram trim-qwen-dump --acts <vlm-activations.json> --weights <weights.json> --out <model folder> ...
+  modeldiagram trim-vlm-dump  <run folder>/dump.pt --out <model folder>     (after the Minerva job, see vlm_job.py)
   modeldiagram check  <model folder> [<model folder> ...]
 
 The format is described in the vault at kai-workspace/universal/model-diagrams.md.
@@ -97,6 +98,16 @@ def cmd_trim_qwen(a):
     return trim(a)
 
 
+def cmd_trim_vlm(a):
+    from .vlm_job import trim
+    run_id = a.run_id
+    rj = pathlib.Path(a.dump).parent / "run.json"
+    if run_id is None and rj.exists():
+        job = json.loads(rj.read_text()).get("job")
+        run_id = f"minerva-{job}" if job else None
+    return trim(a.dump, a.out, run_id=run_id)
+
+
 def cmd_check(a):
     from .check import check_folder
     bad = 0
@@ -106,7 +117,7 @@ def cmd_check(a):
         if stats:
             print("  " + ", ".join(f"{k} {v}" for k, v in stats.items() if k != "values"))
             for vf, size in stats["values"].items():
-                print(f"  values/{vf}: {size}, fits the spec")
+                print(f"  {'weights.json' if vf.startswith('..') else 'values/' + vf}: {size}, fits the spec")
         for p in problems:
             print("  problem:", p)
         bad += bool(problems)
@@ -140,6 +151,11 @@ def main(argv=None):
     q.add_argument("--tokenizer", default="Qwen/Qwen3.5-9B")
     q.add_argument("--out", required=True)
     q.set_defaults(fn=cmd_trim_qwen)
+    t = sub.add_parser("trim-vlm-dump", help="write values/ and weights.json from a dump.pt of modeldiagram.vlm_job (no GPU)")
+    t.add_argument("dump")
+    t.add_argument("--out", required=True)
+    t.add_argument("--run-id", help="default: minerva-<job id> from the run folder's run.json, else the folder's name")
+    t.set_defaults(fn=cmd_trim_vlm)
     c = sub.add_parser("check", help="check that a model folder connects")
     c.add_argument("folders", nargs="+")
     c.set_defaults(fn=cmd_check)

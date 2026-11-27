@@ -1,0 +1,2 @@
+dimensions:
+  model: {values: [untrained], default: untrained, label: "Which weights: the untrained Qwen3.5-9B (mdl-ce4a4b)"}

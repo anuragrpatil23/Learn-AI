@@ -108,7 +108,8 @@ def check_spec(spec):
     return p
 
 
-def check_values(spec, text, name):
+def check_values(spec, text, name, weights_file=False):
+    """A values file holds activations (and the per-input unembed.top.weight); weights.json holds the weights."""
     p = []
     if len(text.encode()) > MAX_VALUES:
         p.append(f"{name}: {len(text.encode()) / 1048576:.1f} MB, over the 2 MB cap")
@@ -122,6 +123,8 @@ def check_values(spec, text, name):
         if tid not in T:
             p.append(f"{name} slices.{tid}: not a tensor of the spec")
             continue
+        if weights_file != (T[tid]["role"] == "weight") and tid != "unembed.top.weight":
+            p.append(f"{name} slices.{tid}: a {T[tid]['role']}, which belongs in " + ("values/" if weights_file else "weights.json"))
         ax = T[tid]["axes"]
         if len(s["shape"]) != len(ax):
             p.append(f"{name} slices.{tid}: {len(s['shape'])} axes, the tensor has {len(ax)}")
@@ -163,6 +166,11 @@ def check_folder(folder):
     stats = dict(spec=specs[0].name, tensors=len(spec["tensors"]), ops=len(spec["ops"]), blocks=len(spec["blocks"]),
                  steps=len(spec["steps"]), values={})
     if not check_spec(spec):
+        wf = folder / "weights.json"
+        if wf.exists():
+            text = wf.read_text()
+            problems += check_values(spec, text, "weights.json", weights_file=True)
+            stats["values"]["../weights.json"] = f"{len(text.encode()) / 1024:.0f} KB"
         for vf in sorted((folder / "values").glob("*.json")):
             text = vf.read_text()
             problems += check_values(spec, text, f"values/{vf.name}")

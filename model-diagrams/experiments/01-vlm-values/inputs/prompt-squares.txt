@@ -1,0 +1,14 @@
+<|im_start|>system
+The following are multiple choice questions (with a correct answer). Output only the answer letter (A, B, C, or D) and nothing else, in the format Answer: x, where x is one of A, B, C, or D.<|im_end|>
+<|im_start|>user
+<|vision_start|><|image_pad|><|vision_end|>How many squares are in the image?
+A. 14
+B. 18
+C. 13
+D. 15<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+
+Answer:

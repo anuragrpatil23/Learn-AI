@@ -1,0 +1,12 @@
+# The venv the job runs in (project.env's ENV), on Minerva's work filesystem:
+#   module load python/3.10.17 && python -m venv /sc/arion/work/$USER/model-diagrams-venv
+#   /sc/arion/work/$USER/model-diagrams-venv/bin/pip install -r jobs/requirements.txt
+# Not built on Minerva yet. transformers, pyyaml, pillow and safetensors are the versions the generator
+# was tested with on 2026-11-26; torch is the CUDA wheel, any version transformers 5.24 accepts.
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch>=2.6
+transformers==5.24.1
+pyyaml==6.0.4
+pillow==13.0.0
+safetensors==0.8.0
+labbook @ git+https://github.com/anuragrpatil23/labbook.git@c81f79f8e33ce831d0be0ce54d5ae0a24a3b7564

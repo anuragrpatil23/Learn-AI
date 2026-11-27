@@ -1,0 +1,161 @@
+{
+ "id": "run-587d9d",
+ "experiment": "01-vlm-values",
+ "experiment_id": null,
+ "kind": "trial",
+ "condition": {
+  "model": "untrained"
+ },
+ "status": "done",
+ "status_reason": null,
+ "status_at": "2026-11-27T02:32:48-05:00",
+ "submitted": "2026-11-27T02:28:51-05:00",
+ "job": "283716716",
+ "replaces": null,
+ "replaces_why": null,
+ "sub_id": null,
+ "stage_id": null,
+ "reads": null,
+ "priority": "main",
+ "why": "trial 2 of the Qwen3.5-9B values job at ad58e0d, after the causal-mask device fix",
+ "session": "6e8e643d-966c-4356-910e-817f646bd3a8",
+ "shown": "the four counting pictures (dots and squares, hint drawn and empty) with the recorded letter-only prompt",
+ "reply": "the answer letter after Answer:",
+ "model_id": "mdl-ce4a4b",
+ "model": "Qwen/Qwen3.5-9B",
+ "model_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+ "project": "model-diagrams",
+ "adapter_id": "",
+ "adapter": "",
+ "adapter_sha256": null,
+ "request": "req-f968b3",
+ "started": "2026-11-27T02:31:27-05:00",
+ "code": {
+  "commit": "ad58e0dd45f367ae0724440793fb1d1d167f7f3e",
+  "dirty": false,
+  "remote": "https://github.com/anuragrpatil23/Learn-AI.git",
+  "imported": {
+   "modeldiagram": "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram"
+  },
+  "imports_skipped": {
+   "torch.classes": "TypeError: '_ClassNamespace' object is not iterable"
+  }
+ },
+ "command": "python /sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/vlm_job.py",
+ "settings": {
+  "INPUTS": "experiments/01-vlm-values/inputs/counting.json",
+  "NEW_TOKENS": 12,
+  "ROWS": "hint-pairs"
+ },
+ "models": {},
+ "inputs": {
+  "experiments/01-vlm-values/inputs/dots-hint.png": {
+   "sha256": "b285c6b8fc1207db952060f186723704320d8e445f3226189e771ba948cde5d7",
+   "bytes": 17140
+  },
+  "experiments/01-vlm-values/inputs/prompt-dots.txt": {
+   "sha256": "6f7707447ba234f009a6eeda0af60ed92831a10553c69b00a401833f2a7b7a19",
+   "bytes": 394
+  },
+  "experiments/01-vlm-values/inputs/dots-empty.png": {
+   "sha256": "a7ac05a33d2d564b215c8ff1e02fe084bff19ee0838061d6c64ec0ab153a0258",
+   "bytes": 7198
+  },
+  "experiments/01-vlm-values/inputs/squares-hint.png": {
+   "sha256": "a047725adceb07585b2bfb5a87efa1f34a70015ef31fdc315e28f46a855d35fa",
+   "bytes": 14489
+  },
+  "experiments/01-vlm-values/inputs/prompt-squares.txt": {
+   "sha256": "f0d757ecaf1d172239d55d866f7b61e0b20b734954930064f601adef07b93241",
+   "bytes": 397
+  },
+  "experiments/01-vlm-values/inputs/squares-empty.png": {
+   "sha256": "b03785dabeaa1f952274c4b3e8f6394b68c1671f0759be7f2b6e0e8b9b5b41fc",
+   "bytes": 4640
+  }
+ },
+ "machine": {
+  "host": "lg07c09",
+  "gpu": [
+   "NVIDIA A100-SXM4-80GB"
+  ],
+  "job": "283716716"
+ },
+ "python": "3.12.5",
+ "packages": {
+  "annotated-types": "0.8.0",
+  "cuda-bindings": "13.5.0",
+  "nvidia-cublas": "13.1.1.3",
+  "fsspec": "2026.9.0",
+  "typer": "0.29.3",
+  "sympy": "1.14.0",
+  "nvidia-cuda-runtime": "13.0.96",
+  "Jinja2": "3.1.6",
+  "typing-inspection": "0.4.5",
+  "pip": "26.3",
+  "annotated-doc": "0.0.7",
+  "httpx2": "2.16.2",
+  "nvidia-cufile": "1.15.1.6",
+  "nvidia-cuda-nvrtc": "13.0.88",
+  "regex": "2026.11.25",
+  "h11": "0.16.0",
+  "anyio": "4.16.0",
+  "nvidia-cuda-cupti": "13.0.85",
+  "nvidia-cusparse": "12.6.3.3",
+  "nvidia-cufft": "12.0.0.61",
+  "pillow": "13.0.0",
+  "click": "8.5.1",
+  "setuptools": "84.2.1",
+  "mdurl": "0.1.2",
+  "rich": "15.0.0",
+  "nvidia-nvtx": "13.0.85",
+  "torch": "2.14.1+cu130",
+  "packaging": "26.4",
+  "networkx": "3.7",
+  "nvidia-nvshmem-cu13": "3.4.5",
+  "huggingface_hub": "2.5.0",
+  "tokenizers": "0.23.3",
+  "nvidia-cusolver": "12.0.4.66",
+  "pydantic_core": "2.50.5",
+  "nvidia-curand": "10.4.0.35",
+  "cuda-pathfinder": "1.9.1",
+  "tqdm": "4.70.1",
+  "nvidia-nvjitlink": "13.5.37",
+  "Pygments": "2.21.0",
+  "labbook": "0.1.0",
+  "mpmath": "1.3.0",
+  "filelock": "4.3.1",
+  "PyYAML": "6.0.4",
+  "markdown-it-py": "4.3.0",
+  "idna": "3.20",
+  "torchvision": "0.29.1+cu130",
+  "hf-xet": "1.8.0",
+  "cuda-toolkit": "13.0.3.0",
+  "nvidia-cudnn-cu13": "9.24.0.43",
+  "typing_extensions": "4.16.0",
+  "MarkupSafe": "3.0.4",
+  "numpy": "2.5.5",
+  "nvidia-cusparselt-cu13": "0.8.1",
+  "triton": "3.8.0",
+  "nvidia-nccl-cu13": "2.30.7",
+  "shellingham": "1.5.4",
+  "safetensors": "0.8.0",
+  "transformers": "5.24.1",
+  "truststore": "0.10.5",
+  "pydantic": "2.14.4",
+  "httpcore2": "2.16.2"
+ },
+ "finished": "2026-11-27T02:32:42-05:00",
+ "minutes": 1.2,
+ "results": {
+  "inputs": 4,
+  "dump_sha256": "fd13aee95fc773b3914040601ee82161d0bb61cfc71e2a91ff1a80994fdcb20b"
+ },
+ "big_files": [
+  {
+   "path": "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/experiments/01-vlm-values/runs/2026-11-27_0228-untrained/dump.pt",
+   "size": 5210069,
+   "sha256": "fd13aee95fc773b3914040601ee82161d0bb61cfc71e2a91ff1a80994fdcb20b"
+  }
+ ]
+}

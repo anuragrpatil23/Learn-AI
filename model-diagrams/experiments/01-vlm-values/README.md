@@ -28,7 +28,7 @@ This is the first in this folder. Against the old dump scripts, everything comes
 
 ## Command
 
-Anurag lifted the hold for this one run (2026-11-26). It goes into the cluster queue with `labbook request` on datapilot, never straight to LSF with `labbook submit`, `jobs/submit.sh` or `bsub` (the standing rule in sfresearch-workflow-conventions.md). The queue project is `model-diagrams`. On work, the checkout of `Learn-AI/model-diagrams` must have no local changes, with the venv from `jobs/requirements.txt` built and `.model.env` copied from `model.env.example`:
+Anurag lifted the hold for this one run (2026-11-26). It goes into the cluster queue with `labbook request` on datapilot, never straight to LSF with `labbook submit`, `jobs/submit.sh` or `bsub` (the standing rule in sfresearch-workflow-conventions.md). The queue project is `model-diagrams`. The checkout is in scratch (`/sc/arion/scratch/patila06/Learn-AI`; nothing new goes directly in `/sc/arion/work/patila06` or above) and must have no local changes. The venv is in scratch too (`ENV` in `project.env`), built from `jobs/requirements.txt` and rebuilt from it if scratch purges it and `.model.env` copied from `model.env.example`:
 
 ```
 KIND=full CONDITION="model=untrained" LABBOOK_WHY="the model drawing's Qwen3.5-9B values: all heads, scores, every weight" \

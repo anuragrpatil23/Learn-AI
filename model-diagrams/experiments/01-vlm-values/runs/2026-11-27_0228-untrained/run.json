@@ -150,12 +150,5 @@
  "results": {
   "inputs": 4,
   "dump_sha256": "fd13aee95fc773b3914040601ee82161d0bb61cfc71e2a91ff1a80994fdcb20b"
- },
- "big_files": [
-  {
-   "path": "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/experiments/01-vlm-values/runs/2026-11-27_0228-untrained/dump.pt",
-   "size": 5210069,
-   "sha256": "fd13aee95fc773b3914040601ee82161d0bb61cfc71e2a91ff1a80994fdcb20b"
-  }
- ]
+ }
 }

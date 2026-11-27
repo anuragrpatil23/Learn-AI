@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -J nanogpt_shakespeare
+#BSUB -P acc_airms_workspace
+#BSUB -q gpu
+#BSUB -n 4
+#BSUB -R "span[hosts=1]"
+#BSUB -gpu "num=4:mode=exclusive_process"
+#BSUB -W 01:00
+#BSUB -o /sc/arion/work/patila06/logs/nanogpt_%J.out
+#BSUB -e /sc/arion/work/patila06/logs/nanogpt_%J.err
+
+export PATH=/hpc/packages/minerva-rocky9/pytorch/2.4.1-cuda12.4/bin:$PATH
+module load cuda/12.4.0
+
+cd /sc/arion/work/patila06/MountSinaiGit/nanoGPT
+
+python -c "import torch; print('torch', torch.__version__, 'cuda:', torch.cuda.is_available(), 'devices:', torch.cuda.device_count())"
+
+torchrun --standalone --nproc_per_node=4 train.py config/train_shakespeare_char.py --gradient_accumulation_steps=4

@@ -1,0 +1,49 @@
+#!/bin/bash
+#BSUB -J nanogpt_multinode
+#BSUB -P acc_airms_workspace
+#BSUB -q gpu
+#BSUB -n 8
+#BSUB -R "span[ptile=4]"
+#BSUB -gpu "num=4:mode=exclusive_process"
+#BSUB -W 01:00
+#BSUB -o /sc/arion/work/patila06/logs/nanogpt_multi_%J.out
+#BSUB -e /sc/arion/work/patila06/logs/nanogpt_multi_%J.err
+
+export PATH=/hpc/packages/minerva-rocky9/pytorch/2.4.1-cuda12.4/bin:$PATH
+module load cuda/12.4.0
+
+cd /sc/arion/work/patila06/MountSinaiGit/nanoGPT
+
+# Get unique hosts allocated by LSF
+HOSTS=($(echo $LSB_HOSTS | tr ' ' '\n' | sort -u))
+NNODES=${#HOSTS[@]}
+MASTER_ADDR=${HOSTS[0]}
+MASTER_PORT=29500
+
+echo "=== Multi-node DDP Setup ==="
+echo "Nodes: $NNODES"
+echo "Hosts: ${HOSTS[@]}"
+echo "Master: $MASTER_ADDR:$MASTER_PORT"
+echo "GPUs per node: 4"
+echo "Total GPUs: $((NNODES * 4))"
+echo "============================"
+
+# Launch torchrun on each node via blaunch
+for i in "${!HOSTS[@]}"; do
+    echo "Launching on ${HOSTS[$i]} with node_rank=$i"
+    blaunch -z "${HOSTS[$i]}" bash -c "
+        export PATH=/hpc/packages/minerva-rocky9/pytorch/2.4.1-cuda12.4/bin:\$PATH
+        cd /sc/arion/work/patila06/MountSinaiGit/nanoGPT
+        torchrun \
+            --nproc_per_node=4 \
+            --nnodes=$NNODES \
+            --node_rank=$i \
+            --master_addr=$MASTER_ADDR \
+            --master_port=$MASTER_PORT \
+            train.py config/train_shakespeare_char.py \
+            --gradient_accumulation_steps=8
+    " &
+done
+
+wait
+echo "All nodes finished."

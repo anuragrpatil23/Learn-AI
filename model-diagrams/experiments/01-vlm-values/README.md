@@ -43,8 +43,11 @@ The four pictures match exp-cd960d (2026-11-26_0558-untrained-letter) inputs.jso
 
 ## Runs
 
-None yet.
+- run-112c39 (full, req-de0159, LSF 283716783, code f3d5d79): done. Replies D, A, D, D, as predicted. `runs/2026-11-27_0234-untrained/`, dump.pt sha256 fd13aee95fc773b3914040601ee82161d0bb61cfc71e2a91ff1a80994fdcb20b. Trimmed into the vault (commit 2f3ee5eba).
+- run-587d9d (trial, req-f968b3, LSF 283716716, code ad58e0d): done, byte-identical dump.
+- run-8b45ff (trial, req-42e7b6, LSF 283716534): failed, a CPU mask on GPU scores; fixed in 06a797a.
+- run-916a26 (full, req-3a9c27, LSF 283707672): failed at start, no torchvision; fixed in 9362dd0.
 
 ## Analysis
 
-To be written after the run.
+The prediction held. One pass per picture gave every tensor of the spec with its names: all 16 heads in vision block 1 and language block 4 with their scores before the softmax, the vision and language queries and keys, the gate, the memory's keys, write, fade and state, the place rows, and the weights the old dumps lacked (vision keys and values, gate, memory keys and values, token table). The replies match the run records, and the values are 1.23 MB per picture. `modeldiagram check` passes on the vault folder. What was run and learnt is in `notes.md`.

@@ -1,0 +1,31 @@
+labbook: import check skipped modules whose __file__ or __path__ can't be read: torch.classes
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/vlm_job.py", line 262, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/vlm_job.py", line 153, in main
+    proc = AutoProcessor.from_pretrained(model_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/venvs/model-diagrams-venv/lib/python3.12/site-packages/transformers/models/auto/processing_auto.py", line 351, in from_pretrained
+    return processor_class.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/venvs/model-diagrams-venv/lib/python3.12/site-packages/transformers/processing_utils.py", line 1856, in from_pretrained
+    args = cls._get_arguments_from_pretrained(pretrained_model_name_or_path, processor_dict, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/venvs/model-diagrams-venv/lib/python3.12/site-packages/transformers/processing_utils.py", line 1996, in _get_arguments_from_pretrained
+    sub_processor = auto_processor_class.from_pretrained(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/venvs/model-diagrams-venv/lib/python3.12/site-packages/transformers/models/auto/video_processing_auto.py", line 435, in from_pretrained
+    return video_processor_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/venvs/model-diagrams-venv/lib/python3.12/site-packages/transformers/utils/import_utils.py", line 2546, in __getattribute__
+    requires_backends(cls, cls._backends)
+  File "/sc/arion/scratch/patila06/venvs/model-diagrams-venv/lib/python3.12/site-packages/transformers/utils/import_utils.py", line 2532, in requires_backends
+    raise ImportError("".join(failed))
+ImportError: 
+Qwen3VLVideoProcessor requires the Torchvision library but it was not found in your environment. Check out the instructions on the
+installation page: https://pytorch.org/get-started/locally/ and follow the ones that match your environment.
+Please note that you may need to restart your runtime after installation.
+

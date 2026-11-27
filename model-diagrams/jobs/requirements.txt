@@ -2,9 +2,9 @@
 #   module load python/3.12.5 && python -m venv /sc/arion/scratch/$USER/venvs/model-diagrams-venv
 #   /sc/arion/scratch/$USER/venvs/model-diagrams-venv/bin/pip install -r jobs/requirements.txt
 # labbook is pinned here (labbook reads no lock file). transformers, pyyaml, pillow and safetensors are the versions the generator
-# was tested with on 2026-11-26; torch is the CUDA wheel, any version transformers 5.24 accepts.
---extra-index-url https://download.pytorch.org/whl/cu124
-torch>=2.6
+# was tested with on 2026-11-26; torch is the CUDA 13.0 build introspection runs on Minerva (2.14.1+cu130), which its GPU drivers support.
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch==2.14.1+cu130
 transformers==5.24.1
 pyyaml==6.0.4
 pillow==13.0.0

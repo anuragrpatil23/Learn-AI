@@ -1,0 +1,29 @@
+labbook: import check skipped modules whose __file__ or __path__ can't be read: torch.classes
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/760 [00:00<?, ?it/s]Loading weights:   2%|▏         | 15/760 [00:00<00:07, 102.74it/s]Loading weights:   4%|▍         | 30/760 [00:00<00:07, 91.52it/s] Loading weights:   5%|▌         | 40/760 [00:00<00:08, 81.80it/s]Loading weights:   6%|▋         | 49/760 [00:00<00:09, 73.71it/s]Loading weights:   8%|▊         | 57/760 [00:00<00:11, 61.89it/s]Loading weights:   8%|▊         | 64/760 [00:00<00:11, 61.94it/s]Loading weights:   9%|▉         | 71/760 [00:01<00:12, 57.01it/s]Loading weights:  10%|█         | 77/760 [00:01<00:12, 55.20it/s]Loading weights:  11%|█         | 83/760 [00:01<00:13, 49.20it/s]Loading weights:  12%|█▎        | 95/760 [00:01<00:10, 63.15it/s]Loading weights:  13%|█▎        | 102/760 [00:01<00:13, 47.61it/s]Loading weights:  14%|█▍        | 108/760 [00:01<00:14, 44.22it/s]Loading weights:  18%|█▊        | 136/760 [00:02<00:07, 81.95it/s]Loading weights:  19%|█▉        | 145/760 [00:02<00:09, 65.29it/s]Loading weights:  20%|██        | 155/760 [00:02<00:08, 69.25it/s]Loading weights:  21%|██▏       | 163/760 [00:02<00:10, 59.12it/s]Loading weights:  22%|██▏       | 170/760 [00:02<00:10, 57.51it/s]Loading weights:  24%|██▎       | 180/760 [00:02<00:09, 59.10it/s]Loading weights:  25%|██▌       | 193/760 [00:03<00:08, 64.93it/s]Loading weights:  27%|██▋       | 203/760 [00:03<00:08, 67.28it/s]Loading weights:  28%|██▊       | 210/760 [00:03<00:08, 63.50it/s]Loading weights:  29%|██▊       | 217/760 [00:03<00:10, 50.66it/s]Loading weights:  29%|██▉       | 223/760 [00:03<00:11, 46.38it/s]Loading weights:  30%|███       | 229/760 [00:03<00:10, 48.64it/s]Loading weights:  32%|███▏      | 241/760 [00:03<00:08, 62.59it/s]Loading weights:  33%|███▎      | 250/760 [00:04<00:07, 68.76it/s]Loading weights:  34%|███▍      | 258/760 [00:04<00:08, 56.71it/s]Loading weights:  35%|███▌      | 269/760 [00:04<00:07, 65.85it/s]Loading weights:  37%|███▋      | 278/760 [00:04<00:07, 61.94it/s]Loading weights:  38%|███▊      | 292/760 [00:04<00:06, 76.46it/s]Loading weights:  42%|████▏     | 321/760 [00:04<00:03, 119.92it/s]Loading weights:  49%|████▊     | 369/760 [00:04<00:01, 201.30it/s]Loading weights:  58%|█████▊    | 442/760 [00:04<00:00, 331.70it/s]Loading weights: 100%|██████████| 760/760 [00:05<00:00, 151.70it/s]
+[transformers] `causal_conv1d_fn` is falling back to its reference PyTorch implementation because `causal_conv1d` is not installed. This is correct but much slower; install `causal_conv1d` for the optimized kernel.
+[transformers] `chunk_gated_delta_rule` is falling back to its reference PyTorch implementation because `flash-linear-attention` is not installed. This is correct but much slower; install `flash-linear-attention` for the optimized kernel.
+[transformers] `causal_conv1d_update` is falling back to its reference PyTorch implementation because `causal_conv1d` is not installed. This is correct but much slower; install `causal_conv1d` for the optimized kernel.
+[transformers] `fused_recurrent_gated_delta_rule` is falling back to its reference PyTorch implementation because `flash-linear-attention` is not installed. This is correct but much slower; install `flash-linear-attention` for the optimized kernel.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/vlm_job.py", line 262, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/vlm_job.py", line 175, in main
+    b = build.build_vlm(roots, model_path, ids, dict(image_at=s0))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/build.py", line 568, in build_vlm
+    b.walk([k for k in lang.kids if k.cls != "Embedding"])
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/build.py", line 135, in walk
+    self.block_list(run)
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/build.py", line 299, in block_list
+    self.one_block(b, bid, names[s])
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/build.py", line 326, in one_block
+    o = getattr(self, "read_" + role)(k, f"{p}{name}", h, bid)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sc/arion/scratch/patila06/Learn-AI/model-diagrams/modeldiagram/build.py", line 421, in read_attention
+    scores = scores.masked_fill(torch.triu(torch.ones(T, T, dtype=torch.bool), 1), float("-inf"))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: expected self and mask to be on the same device, but got mask on cpu and self on cuda:0

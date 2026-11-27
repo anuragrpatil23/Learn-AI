@@ -48,7 +48,7 @@ A model folder holds `weights.json` once (the weights are the same for every inp
 
 ## Vision-language models on Minerva
 
-A VLM's values need a GPU, so they come from a labbook job. This folder is its own labbook project: `project.env`, `model.env.example` (copy to `.model.env`), `jobs/requirements.txt` for the job's venv, and `experiments/01-vlm-values/`, whose README has the submit line. The job is `modeldiagram.vlm_job`. It runs the same trace as `spec` on the real model, keeping tensors only for the blocks the spec draws, and writes a generous `dump.pt` (64 columns, all heads, the scores before the softmax). It then trims that into a model folder inside the run folder. `trim-vlm-dump` does the same trim later, on the laptop. A test runs the whole path on a tiny Qwen3.5 with random weights.
+A VLM's values need a GPU, so they come from a labbook job. This folder is its own labbook project: `project.env`, `model.env.example` (copy to `.model.env`), `requirements.txt` for the job's venv, and `experiments/01-vlm-values/`, whose README has the submit line. The job is `modeldiagram.vlm_job`. It runs the same trace as `spec` on the real model, keeping tensors only for the blocks the spec draws, and writes a generous `dump.pt` (64 columns, all heads, the scores before the softmax). It then trims that into a model folder inside the run folder. `trim-vlm-dump` does the same trim later, on the laptop. A test runs the whole path on a tiny Qwen3.5 with random weights.
 
 labbook refuses to submit from a checkout with uncommitted changes anywhere in Learn-AI, since it checks with git status.
 

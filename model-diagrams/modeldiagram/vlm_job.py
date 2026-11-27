@@ -1,11 +1,11 @@
 """The labbook job that makes a vision-language model's values on Minerva, and its trim.
 
-    labbook submit 01-vlm-values modeldiagram.vlm_job INPUTS=experiments/01-vlm-values/inputs/counting.json
+    labbook request --project model-diagrams 01-vlm-values modeldiagram.vlm_job INPUTS=experiments/01-vlm-values/inputs/counting.json
 
-(the full line, with KIND, CONDITION and LABBOOK_WHY, is in experiments/01-vlm-values/README.md).
+(through the cluster queue, never labbook submit; the full line, with KIND, CONDITION and LABBOOK_WHY, is in experiments/01-vlm-values/README.md).
 
 The job (python -m modeldiagram.vlm_job, from the model-diagrams folder) reads the model from MODEL_PATH, the
-shared copy labbook submit checked. For each input in the INPUTS manifest it:
+shared copy labbook checked. For each input in the INPUTS manifest it:
   1. writes the reply (greedy, NEW_TOKENS tokens), with no hooks;
   2. runs one pass of the prompt and picture, traced by the same code as `modeldiagram spec`, so every tensor
      has the spec's name (trace.run_vlm keeps tensors only for the blocks the spec draws);
@@ -178,8 +178,9 @@ def main():
                                  vocab_words={str(i): proc.tokenizer.decode([i]).strip() or repr(proc.tokenizer.decode([i]))
                                               for i in b.data["output.out"][0, -1].float().topk(8).indices.tolist()},
                                  reply=reply, image_at=s0, grid=x["image_grid_thw"][0].tolist(), rows=rows[n], tensors=tensors)
+        # labbook stores the picture once in its picture store and names it in the run's inputs.json
         run.example(n, condition={"model": "untrained"}, prompt=(here / item["prompt"]).read_text(),
-                    image=str(here / item["image"]), output=reply)
+                    image=str((here / item["image"]).resolve()), output=reply)
         print(f"{n}: {ids.shape[1]} tokens, picture from {s0}, reply {reply!r}, {len(tensors)} tensors", flush=True)
         del roots, b
         torch.cuda.empty_cache()
